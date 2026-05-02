@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShellSynth — sintetizador armónico de caracolas</title>
+<meta name="description" content="Un instrumento audiovisual interactivo que mapea la serie armónica sobre la geometría de una caracola. Explorá la conexión entre sonido, matemática y naturaleza.">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a1a; --bg2: #0f1025; --bg3: #161638;
+  --text: #c8cad0; --text-dim: #6a6d80; --text-bright: #eef0ff;
+  --glass: rgba(20,22,50,0.65); --glass-border: rgba(100,120,200,0.15);
+  --h1: #ff4136; --h2: #ff6b35; --h3: #ff9f1c; --h4: #ffcd05;
+  --h5: #f0e130; --h6: #7bc950; --h7: #2ec4b6; --h8: #00b4d8;
+  --h9: #3a86ff; --h10: #5e60ce; --h11: #7b2ff7; --h12: #9d4edd;
+  --h13: #c77dff; --h14: #e0aaff; --h15: #f0c8ff; --h16: #ffd6ff;
+  --mese-glow: #ffd700; --accent: #3a86ff;
+  font-family: 'JetBrains Mono', monospace;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); min-height:100vh; max-width:100vw; overflow-x:hidden; }
+#app { display:grid; grid-template-rows:auto minmax(0, 1fr) auto; width:100%; max-width:100vw; height:100vh; overflow:hidden; }
+
+/* ENCABEZADO */
+header { display:flex; align-items:center; justify-content:space-between;
+  gap:16px; min-height:48px; padding:0 18px; background:var(--bg2);
+  border-bottom:1px solid var(--glass-border); z-index:10; }
+header h1 { flex:0 0 auto; font-size:13px; font-weight:400; letter-spacing:2px; color:var(--text-bright); text-transform:uppercase; }
+.header-controls { display:flex; align-items:center; justify-content:flex-end; gap:10px; min-width:0;
+  overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:12px; scrollbar-width:none; }
+.header-controls::-webkit-scrollbar { display:none; }
+.header-group { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+.header-actions { gap:6px; }
+.tuning-toggle { background:rgba(255,255,255,0.02); border:1px solid var(--glass-border);
+  border-radius:5px; padding:2px; }
+.freq-select { background:var(--bg3); border:1px solid var(--glass-border); color:var(--text);
+  height:30px; padding:4px 8px; border-radius:4px; font-family:inherit; font-size:12px; cursor:pointer; }
+.toggle-btn { background:none; border:1px solid var(--glass-border); color:var(--text-dim);
+  min-height:28px; padding:4px 10px; border-radius:4px; cursor:pointer; font-family:inherit; font-size:11px; transition:all 0.3s; }
+.toggle-btn.active { color:var(--mese-glow); border-color:var(--mese-glow); }
+.toggle-btn:hover { border-color:var(--accent); color:var(--text); }
+.icon-btn { background:none; border:1px solid var(--glass-border); color:var(--text-dim);
+  width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; transition:all 0.3s; display:flex; align-items:center; justify-content:center; }
+.icon-btn:hover { border-color:var(--accent); color:var(--text-bright); }
+.icon-btn.active { color:var(--mese-glow); border-color:var(--mese-glow); }
+
+/* PANEL LATERAL DE CONFIGURACIÓN */
+.settings-scrim { position:fixed; inset:0; background:rgba(4,5,14,0.46); opacity:0;
+  pointer-events:none; transition:opacity 0.2s ease; z-index:40; }
+.settings-scrim.visible { opacity:1; pointer-events:auto; }
+.settings-sidebar { position:fixed; top:0; right:0; width:min(360px, calc(100vw - 24px)); height:100vh;
+  background:rgba(15,16,37,0.98); border-left:1px solid var(--glass-border);
+  box-shadow:-24px 0 60px rgba(0,0,0,0.35); transform:translateX(100%);
+  transition:transform 0.24s ease; z-index:50; display:flex; flex-direction:column; }
+.settings-sidebar.open { transform:translateX(0); }
+.settings-header { min-height:48px; padding:0 16px; display:flex; align-items:center;
+  justify-content:space-between; border-bottom:1px solid var(--glass-border); }
+.settings-title { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-bright); }
+.settings-body { padding:16px; overflow-y:auto; display:grid; gap:18px;
+  font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim); }
+.settings-section { display:grid; gap:10px; }
+.settings-section h2 { font-size:10px; font-weight:500; letter-spacing:1.4px;
+  text-transform:uppercase; color:var(--text); }
+.setting-row { display:grid; grid-template-columns:82px minmax(0, 1fr); align-items:center; gap:10px; min-height:32px; }
+.setting-row label { letter-spacing:1px; text-transform:uppercase; }
+.setting-row .freq-select { width:100%; }
+.setting-row .tuning-toggle { justify-self:start; }
+.fx-group { display:grid; grid-template-columns:82px minmax(0, 1fr) 48px; align-items:center; gap:10px; min-height:32px; }
+.fx-group label { letter-spacing:1px; text-transform:uppercase; }
+.fx-group input[type=range] { width:100%; accent-color:var(--accent); cursor:pointer; }
+.fx-group .fx-val { color:var(--text); min-width:44px; text-align:right; }
+.settings-actions { display:flex; align-items:center; gap:8px; }
+
+/* PANELES PRINCIPALES */
+.main-panels { display:grid; grid-template-columns:1fr 1fr; gap:0; overflow:hidden; }
+.panel { position:relative; border:1px solid var(--glass-border); }
+.panel-label { position:absolute; top:8px; left:12px; font-size:10px; font-family:'JetBrains Mono',monospace;
+  color:var(--text-dim); letter-spacing:1.5px; text-transform:uppercase; z-index:2; }
+canvas { width:100%; height:100%; display:block; }
+#shell-canvas { touch-action: none; cursor: crosshair; }
+
+/* CONTROLES INFERIORES */
+.controls { background:var(--bg2); border-top:1px solid var(--glass-border); padding:12px 20px; display:grid; gap:10px; }
+.slider-row { display:flex; align-items:flex-end; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+.slider-row::-webkit-scrollbar { display:none; }
+.add-btn { width:36px; min-width:36px; height:80px; background:var(--bg3); border:1px dashed var(--glass-border);
+  border-radius:6px; color:var(--text-dim); font-size:20px; cursor:pointer; transition:all 0.3s;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.add-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(58,134,255,0.05); }
+.harmonic-slider { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:44px; }
+.harmonic-slider .label { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--text-dim); }
+.harmonic-slider .note { font-size:11px; font-weight:500; }
+.harmonic-slider input[type=range] { writing-mode:vertical-lr; direction:rtl; width:20px; height:60px;
+  -webkit-appearance:none; appearance:none; background:transparent; cursor:pointer; }
+.harmonic-slider input[type=range]::-webkit-slider-track { width:3px; background:var(--bg3); border-radius:2px; }
+.harmonic-slider input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px;
+  border-radius:50%; border:none; cursor:pointer; }
+.harmonic-slider .value { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--text-dim); }
+.mute-btn { width:18px; height:18px; padding:0; font-size:9px; background:var(--bg3);
+  border:1px solid var(--glass-border); color:var(--text-dim); border-radius:3px; cursor:pointer;
+  font-family:'JetBrains Mono',monospace; transition:all 0.2s; line-height:1; }
+.mute-btn:hover { color:var(--text); border-color:var(--accent); }
+.mute-btn.muted { background:rgba(255,75,75,0.18); color:#ff8c8c;
+  border-color:rgba(255,75,75,0.55); }
+.preset-row { display:flex; gap:8px; align-items:center; overflow-x:auto; padding-bottom:2px; scrollbar-width:none; }
+.preset-row::-webkit-scrollbar { display:none; }
+.preset-row span { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text-dim);
+  letter-spacing:1px; text-transform:uppercase; margin-right:4px; flex:0 0 auto; }
+.preset-btn { background:var(--glass); border:1px solid var(--glass-border); color:var(--text-dim);
+  padding:4px 12px; border-radius:4px; cursor:pointer; font-family:inherit;
+  font-size:11px; letter-spacing:0.5px; transition:all 0.3s; white-space:nowrap; }
+.preset-btn:hover { border-color:var(--accent); color:var(--text); }
+.preset-btn.active { border-color:var(--mese-glow); color:var(--mese-glow); }
+.wave-mode-toggle { position:absolute; top:8px; right:12px; display:flex; gap:4px; z-index:2; }
+.path-toolbar { position:absolute; top:44px; right:12px; display:flex; align-items:center; gap:4px;
+  max-width:calc(100% - 24px); overflow-x:auto; scrollbar-width:none; z-index:2; }
+.path-toolbar::-webkit-scrollbar { display:none; }
+.path-speed { display:flex; align-items:center; gap:4px; height:28px; padding:0 6px;
+  background:rgba(15,16,37,0.72); border:1px solid var(--glass-border); border-radius:4px;
+  font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim); }
+.path-speed input { width:42px; height:20px; background:transparent; border:0; color:var(--text);
+  font:inherit; text-align:right; outline:none; }
+.path-speed input::-webkit-outer-spin-button,
+.path-speed input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+#path-play-mode { min-width:28px; font-size:14px; line-height:1; }
+/* El botón de pantalla completa ahora es un toggle-btn común dentro de wave-mode-toggle */
+
+/* CAPA DE AYUDA */
+#help-overlay { position:fixed; inset:0; background:rgba(5,5,15,0.92); z-index:100; display:none;
+  justify-content:center; align-items:center; }
+#help-overlay.visible { display:flex; }
+.help-content { max-width:640px; padding:40px; color:var(--text); line-height:1.7; font-size:12px; }
+.help-content h2 { font-size:16px; font-weight:500; color:var(--text-bright); margin-bottom:16px; letter-spacing:1.5px; text-transform:uppercase; }
+.help-content p { margin-bottom:12px; }
+.help-content blockquote { border-left:2px solid var(--mese-glow); padding-left:16px; color:var(--text-dim);
+  font-style:italic; margin:16px 0; }
+.help-content .close-help { position:absolute; top:20px; right:20px; background:none; border:none;
+  color:var(--text-dim); font-size:24px; cursor:pointer; }
+
+@media (max-width: 840px) {
+  header { gap:10px; padding:0 14px; }
+  .header-controls { justify-content:flex-end; overflow:visible; }
+  .main-panels { grid-template-columns:1fr; grid-template-rows:1fr 1fr; }
+  .wave-mode-toggle { right:8px; max-width:calc(100% - 16px); overflow-x:auto; scrollbar-width:none; }
+  .wave-mode-toggle::-webkit-scrollbar { display:none; }
+  .wave-mode-toggle .toggle-btn { padding:4px 8px; }
+  .path-toolbar { left:8px; right:auto; max-width:calc(100% - 16px); }
+  .path-toolbar .toggle-btn { padding:4px 8px; }
+  .controls { padding:10px 14px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>🐚 SHELLSYNTH</h1>
+    <div class="header-controls" aria-label="Controles principales">
+      <div class="header-group header-actions">
+        <button class="toggle-btn" id="grid-toggle" title="Mostrar u ocultar grilla">⊞</button>
+        <button class="icon-btn" id="settings-toggle" title="Configuración de audio" aria-controls="settings-sidebar" aria-expanded="false">⚙</button>
+        <button class="icon-btn" id="help-btn" title="Acerca de">?</button>
+      </div>
+    </div>
+  </header>
+  <div class="settings-scrim" id="settings-scrim"></div>
+  <aside class="settings-sidebar" id="settings-sidebar" aria-hidden="true">
+    <div class="settings-header">
+      <div class="settings-title">Configuración de audio</div>
+      <button class="icon-btn" id="settings-close" title="Cerrar configuración">✕</button>
+    </div>
+    <div class="settings-body">
+      <section class="settings-section">
+        <h2>Tono y voz</h2>
+        <div class="setting-row">
+          <label for="freq-select">Base</label>
+          <select class="freq-select" id="freq-select" title="Octava base (Hz)" aria-label="Octava base">
+            <option value="27">27 Hz</option><option value="54">54 Hz</option>
+            <option value="108" selected>108 Hz</option><option value="216">216 Hz</option>
+            <option value="432">432 Hz</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label for="tonic-select">Tónica</label>
+          <select class="freq-select" id="tonic-select" title="Nota tónica (transpone todo)" aria-label="Nota tónica">
+            <option value="0" selected>C</option><option value="1">C#</option>
+            <option value="2">D</option><option value="3">D#</option>
+            <option value="4">E</option><option value="5">F</option>
+            <option value="6">F#</option><option value="7">G</option>
+            <option value="8">G#</option><option value="9">A</option>
+            <option value="10">A#</option><option value="11">B</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label for="scale-select">Escala</label>
+          <select class="freq-select" id="scale-select" title="Escala usada por el eje Y del pad XY" aria-label="Escala">
+            <option value="major" selected>Mayor</option>
+            <option value="minor">Menor</option>
+            <option value="pentaMaj">Pent. mayor</option>
+            <option value="pentaMin">Pent. menor</option>
+            <option value="phrygian">Frigia</option>
+            <option value="hijaz">Hijaz</option>
+            <option value="yaman">Yaman</option>
+            <option value="bhairav">Bhairav</option>
+            <option value="wholeTone">Tonos enteros</option>
+            <option value="chromatic">Cromática</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label for="wave-select">Onda</label>
+          <select class="freq-select" id="wave-select" title="Forma de onda del oscilador" aria-label="Forma de onda del oscilador">
+            <option value="sine" selected>Seno</option>
+            <option value="triangle">Triangular</option>
+            <option value="square">Cuadrada</option>
+            <option value="sawtooth">Sierra</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>Afinación</label>
+          <div class="tuning-toggle" aria-label="Modo de afinación">
+            <button class="toggle-btn active" id="ji-toggle" title="Entonación justa — relaciones enteras exactas (=)">=</button>
+            <button class="toggle-btn" id="et-toggle" title="Temperamento igual — aproximación por semitonos iguales (≈)">≈</button>
+          </div>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h2>Mix</h2>
+        <div class="fx-group">
+          <label for="fx-vol">Volume</label>
+          <input type="range" id="fx-vol" min="0" max="100" value="70" title="Volumen maestro (0 = silencio)">
+          <span class="fx-val" id="fx-vol-val">70%</span>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h2>Effects</h2>
+        <div class="fx-group">
+          <label for="fx-rev">Reverb</label>
+          <input type="range" id="fx-rev" min="0" max="100" value="40">
+          <span class="fx-val" id="fx-rev-val">40%</span>
+        </div>
+        <div class="fx-group">
+          <label for="fx-del">Delay</label>
+          <input type="range" id="fx-del" min="0" max="100" value="0">
+          <span class="fx-val" id="fx-del-val">0%</span>
+        </div>
+        <div class="fx-group">
+          <label for="fx-del-time">Time</label>
+          <input type="range" id="fx-del-time" min="40" max="1500" value="400">
+          <span class="fx-val" id="fx-del-time-val">400ms</span>
+        </div>
+        <div class="fx-group">
+          <label for="fx-del-fb">Feedback</label>
+          <input type="range" id="fx-del-fb" min="0" max="92" value="35">
+          <span class="fx-val" id="fx-del-fb-val">35%</span>
+        </div>
+        <div class="fx-group">
+          <label for="fx-vib">Vibrato</label>
+          <input type="range" id="fx-vib" min="0" max="100" value="0">
+          <span class="fx-val" id="fx-vib-val">0%</span>
+        </div>
+      </section>
+    </div>
+  </aside>
+  <div class="main-panels">
+    <div class="panel" id="wave-panel">
+      <div class="wave-mode-toggle">
+        <button class="toggle-btn" data-fs="wave-panel" title="Pantalla completa">⛶</button>
+        <button class="toggle-btn active" id="sep-btn" title="Ondas separadas">SEP</button>
+        <button class="toggle-btn" id="sup-btn" title="Ondas superpuestas">SUP</button>
+      </div>
+      <canvas id="wave-canvas"></canvas>
+    </div>
+    <div class="panel" id="shell-panel">
+      <div class="wave-mode-toggle" id="shell-view-toggle">
+        <button class="toggle-btn" data-fs="shell-panel" title="Pantalla completa">⛶</button>
+        <button class="toggle-btn active" data-view="spiral" title="Vista superior tipo rayos X">ESP</button>
+        <button class="toggle-btn" data-view="harmonic" title="Serie armónica — ondas estacionarias">ARM</button>
+      </div>
+      <div class="path-toolbar" aria-label="Controles de recorrido">
+        <button class="toggle-btn" id="path-mode" title="Path mode — clic para agregar puntos, doble clic para quitar">PATH</button>
+        <button class="toggle-btn" id="hold-mode" title="Hold mode — activado mantiene el sonido al soltar. Desactivado suena solo mientras presionás.">HOLD</button>
+        <button class="toggle-btn" id="path-play-mode" title="Modo de reproducción: ida y vuelta">↔</button>
+        <button class="toggle-btn" id="path-play" title="Reproducir o detener recorrido">▶</button>
+        <button class="toggle-btn" id="path-clear" title="Borrar todos los puntos del recorrido">✕</button>
+        <label class="path-speed" title="Duración del recorrido en segundos">
+          <input type="number" id="fx-path-speed" min="0.5" max="60" step="0.5" value="6" aria-label="Duración del recorrido en segundos">
+          <span>s</span>
+        </label>
+      </div>
+      <canvas id="shell-canvas"></canvas>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="slider-row" id="slider-row">
+      <button class="add-btn" id="add-btn" title="Agregar armónico">+</button>
+    </div>
+    <div class="preset-row">
+      <button class="preset-btn" data-preset="nautilus">🌀 Nautilus</button>
+      <button class="preset-btn" data-preset="murex">🐚 Murex</button>
+      <button class="preset-btn" data-preset="shankha">🕉️ Shankha</button>
+      <button class="preset-btn" data-preset="triton">🔱 Triton</button>
+      <button class="preset-btn" data-preset="strombus">🌊 Strombus</button>
+      <button class="preset-btn" data-preset="phi" title="Espiral dorada (abstracción matemática)">🌻 Phi</button>
+      <button class="preset-btn" data-preset="empty" title="Borrar todo">∅ Vacío</button>
+    </div>
+  </div>
+</div>
+<div id="help-overlay">
+  <div class="help-content">
+    <button class="close-help" id="close-help">✕</button>
+    <h2>🐚 ShellSynth</h2>
+    <p>Una meditación interactiva sobre la conexión entre la serie armónica y la geometría de las caracolas.</p>
+    <blockquote>"La meta más alta de la música es conectar el alma con su naturaleza divina, no entretener." — Pitágoras</blockquote>
+    <p>La estructura de los primeros armónicos de un sonido refleja las cámaras espirales de una caracola. Cada cámara es un armónico: hacé clic en <strong>[+]</strong> para sumarlos uno por uno y escuchar cómo se construye el timbre.</p>
+    <p><strong>Deslizadores</strong> — ajustan la amplitud de cada armónico. La caracola se transforma en tiempo real.</p>
+    <p><strong>Clic en la caracola</strong> — activa o desactiva armónicos individuales tocando sus cámaras.</p>
+    <p><strong>Arrastrar sobre la caracola</strong> — barré desde la apertura hasta el ápice para un gesto tipo OUM.</p>
+    <p><strong>PATH</strong> — agregá puntos sobre la caracola. El botón <strong>↔ / → / ←</strong> cambia entre ida y vuelta, bucle hacia adelante o bucle inverso.</p>
+    <p><strong>JI / ET</strong> — alterna entre entonación justa (convergencia natural en el punto mese) y temperamento igual (afinación moderna donde las ondas no llegan perfecto al mese).</p>
+    <p><strong>Preajustes</strong> — especies reales de caracolas con perfiles armónicos propios.</p>
+    <p>Basado en investigaciones de Stephanie McPeak Petersen, Pradeep Kariyawasam y las conferencias de Leonard Bernstein en Harvard (1973).</p>
+  </div>
+</div>
+<script>
+// ═══════════════════════════════════════════
+// DATOS ARMÓNICOS
+// ═══════════════════════════════════════════
+const HARMONICS = [
+  {n:1, note:'C', color:'#ff4136'}, {n:2, note:'C', color:'#ff6b35'},
+  {n:3, note:'G', color:'#ff9f1c'}, {n:4, note:'C', color:'#ffcd05'},
+  {n:5, note:'E', color:'#f0e130'}, {n:6, note:'G', color:'#7bc950'},
+  {n:7, note:'B♭', color:'#2ec4b6'}, {n:8, note:'C', color:'#00b4d8'},
+  {n:9, note:'D', color:'#3a86ff'}, {n:10, note:'E', color:'#5e60ce'},
+  {n:11, note:'F#', color:'#7b2ff7'}, {n:12, note:'G', color:'#9d4edd'},
+  {n:13, note:'A♭', color:'#c77dff'}, {n:14, note:'B♭', color:'#e0aaff'},
+  {n:15, note:'B', color:'#f0c8ff'}, {n:16, note:'C', color:'#ffd6ff'}
+];
+
+const PRESETS = {
+  empty: { name:'Vacío', b:0.18, amps:[] },
+  shankha: { name:'Shankha', b:0.22, amps:[1,.0,.7,.0,.5,.0,.35,.0,.25,.0,.18,.0,.12,.0,.08,.0] },
+  nautilus: { name:'Nautilus', b:0.1759, amps:[1,.85,.7,.6,.5,.42,.35,.28,.22,.18,.14,.11,.08,.06,.04,.03] },
+  triton: { name:'Triton', b:0.19, amps:[.8,.3,.9,.2,.85,.25,.6,.1,.3,.08,.15,.05,.08,.03,.04,.02] },
+  strombus: { name:'Strombus', b:0.25, amps:[1,.9,.5,.4,.2,.15,.08,.05,.03,.02,.01,0,0,0,0,0] },
+  murex: { name:'Murex', b:0.31, amps:[.6,.5,.65,.55,.7,.6,.75,.5,.6,.45,.5,.4,.35,.3,.25,.2] },
+  // Abstracción matemática, no una especie real: espiral dorada (b = 2·ln(φ)/π) +
+  // amplitudes que decaen por 1/φ en cada armónico (autosimilar por construcción).
+  phi: { name:'Phi', b:0.3063, amps:[1,.618,.382,.236,.146,.090,.056,.034,.021,.013,.008,.005,.003,.002,.001,0] }
+};
+
+// Relaciones de temperamento igual (semitonos desde la fundamental por número armónico)
+const ET_SEMITONES = [0,12,19.02,24,27.86,31.02,33.69,36,37.92,39.69,41.25,42.78,44.1,45.31,46.5,48];
+
+// Escalas como desplazamientos en semitonos desde la tónica. El eje Y del pad XY las usa para ajustar la altura.
+const SCALES = {
+  major:     [0, 2, 4, 5, 7, 9, 11],
+  minor:     [0, 2, 3, 5, 7, 8, 10],
+  pentaMaj:  [0, 2, 4, 7, 9],
+  pentaMin:  [0, 3, 5, 7, 10],
+  phrygian:  [0, 1, 3, 5, 7, 8, 10],
+  hijaz:     [0, 1, 4, 5, 7, 8, 11],   // Maqam Hijaz / frigia española
+  yaman:     [0, 2, 4, 6, 7, 9, 11],   // Yaman indio ≈ lidia
+  bhairav:   [0, 1, 4, 5, 7, 8, 11],   // Bhairav indio (raga de la mañana)
+  wholeTone: [0, 2, 4, 6, 8, 10],
+  chromatic: [0,1,2,3,4,5,6,7,8,9,10,11]
+};
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+function noteForHarmonic(n, tonicSemis) {
+  // Aproximación: toma la nota temperada más cercana al armónico n.
+  const semis = Math.round(12 * Math.log2(n));
+  return NOTE_NAMES[((tonicSemis + semis) % 12 + 12) % 12];
+}
+
+function scaleStepToSemitones(step, scale) {
+  // El paso puede ser negativo o positivo; se envuelve entre octavas.
+  const len = scale.length;
+  const oct = Math.floor(step / len);
+  const idx = ((step % len) + len) % len;
+  return oct * 12 + scale[idx];
+}
+
+// ═══════════════════════════════════════════
+// MOTOR DE AUDIO
+// ═══════════════════════════════════════════
+class AudioEngine {
+  constructor() {
+    this.ctx = null; this.oscs = []; this.gains = [];
+    this.masterGain = null; this.compressor = null; this.analyser = null;
+    this.convolver = null; this.dryGain = null; this.wetGain = null;
+    this.fundamental = 108; this.useJI = true; this.started = false;
+    this.activeHarmonics = new Set();
+    this.tonicSemis = 0;     // desplazamiento en semitonos de la tónica elegida
+    this.padPitchSemis = 0;  // desplazamiento en semitonos que viene del eje Y del pad XY
+    this.waveType = 'sine';  // forma de onda del oscilador para los 16 armónicos
+  }
+  async init() {
+    if (this.ctx) return;
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.analyser = this.ctx.createAnalyser();
+    this.analyser.fftSize = 2048;
+    this.compressor = this.ctx.createDynamicsCompressor();
+    this.compressor.threshold.value = -24; this.compressor.ratio.value = 4;
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.value = 0.35;
+    // Reverberación por convolución con una respuesta impulsional oceánica sintética
+    this.convolver = this.ctx.createConvolver();
+    this.convolver.buffer = this._createReverbIR(4.0);
+    this.dryGain = this.ctx.createGain(); this.dryGain.gain.value = 1.0;
+    this.wetGain = this.ctx.createGain(); this.wetGain.gain.value = 0.4;
+    // Eco con bucle de retorno y envío húmedo
+    this.delay = this.ctx.createDelay(2.0);
+    this.delay.delayTime.value = 0.4;
+    this.delayFeedback = this.ctx.createGain(); this.delayFeedback.gain.value = 0.35;
+    this.delayWet = this.ctx.createGain(); this.delayWet.gain.value = 0.0;
+    // Ruteo:
+    // maestro ─┬─► señal seca ─────────────────────────► compresor
+    //          ├─► convolución ─► señal húmeda ────────► compresor
+    //          └─► eco ─┬─► eco húmedo ────────────────► compresor
+    //                   └─► retorno de eco ─► eco (bucle)
+    this.masterGain.connect(this.dryGain);
+    this.masterGain.connect(this.convolver);
+    this.convolver.connect(this.wetGain);
+    this.masterGain.connect(this.delay);
+    this.delay.connect(this.delayFeedback);
+    this.delayFeedback.connect(this.delay);
+    this.delay.connect(this.delayWet);
+    this.dryGain.connect(this.compressor);
+    this.wetGain.connect(this.compressor);
+    this.delayWet.connect(this.compressor);
+    this.compressor.connect(this.analyser);
+    this.analyser.connect(this.ctx.destination);
+    // LFO de vibrato: modula el `detune` de cada oscilador (centésimas)
+    // para sonar como una oscilación natural de altura, no como un corrimiento fijo.
+    this.vibratoLFO = this.ctx.createOscillator();
+    this.vibratoLFO.frequency.value = 5.0;          // Hz, velocidad del vibrato
+    this.vibratoDepth = this.ctx.createGain();
+    this.vibratoDepth.gain.value = 0;               // centésimas, 0 = sin vibrato
+    this.vibratoLFO.connect(this.vibratoDepth);
+    // Crear osciladores
+    for (let i = 0; i < 16; i++) {
+      const osc = this.ctx.createOscillator();
+      osc.type = this.waveType;
+      osc.frequency.value = this._freq(i);
+      const gain = this.ctx.createGain();
+      gain.gain.value = 0;
+      osc.connect(gain); gain.connect(this.masterGain);
+      this.vibratoDepth.connect(osc.detune);
+      osc.start();
+      this.oscs.push(osc); this.gains.push(gain);
+    }
+    this.vibratoLFO.start();
+    this.started = true;
+  }
+  _freq(i) {
+    // La tónica + la altura del pad transponen toda la serie armónica en cascada.
+    const factor = Math.pow(2, (this.tonicSemis + this.padPitchSemis) / 12);
+    if (this.useJI) return this.fundamental * factor * (i + 1);
+    return this.fundamental * factor * Math.pow(2, ET_SEMITONES[i] / 12);
+  }
+  setTonicSemis(s) { this.tonicSemis = s; this.setFundamental(this.fundamental); }
+  setPadPitchSemis(s) {
+    if (s === this.padPitchSemis) return;
+    this.padPitchSemis = s;
+    this.setFundamental(this.fundamental);
+  }
+  setReverbMix(v) {
+    if (!this.wetGain) return;
+    const t = this.ctx.currentTime;
+    this.wetGain.gain.linearRampToValueAtTime(v, t + 0.05);
+  }
+  setDelayMix(v) {
+    if (!this.delayWet) return;
+    const t = this.ctx.currentTime;
+    this.delayWet.gain.linearRampToValueAtTime(v, t + 0.05);
+  }
+  setDelayTime(seconds) {
+    if (!this.delay) return;
+    const t = this.ctx.currentTime;
+    this.delay.delayTime.linearRampToValueAtTime(Math.max(0.01, seconds), t + 0.05);
+  }
+  setDelayFeedback(v) {
+    if (!this.delayFeedback) return;
+    const t = this.ctx.currentTime;
+    // Límite menor que 1.0 para evitar un retorno descontrolado.
+    this.delayFeedback.gain.linearRampToValueAtTime(Math.max(0, Math.min(0.92, v)), t + 0.05);
+  }
+  setWaveform(type) {
+    this.waveType = type;
+    if (this.oscs) this.oscs.forEach(o => { o.type = type; });
+  }
+  setVibrato(amount) {
+    // Valor 0..1 → 0..50 centésimas de oscilación de altura (≈ ±medio semitono al máximo).
+    if (!this.vibratoDepth) return;
+    const t = this.ctx.currentTime;
+    this.vibratoDepth.gain.linearRampToValueAtTime(amount * 50, t + 0.05);
+  }
+  setMasterVolume(v) {
+    // v en 0..1; 0 silencia, 1 se mapea a una ganancia pico razonable (0.5).
+    if (!this.masterGain) return;
+    const t = this.ctx.currentTime;
+    this.masterGain.gain.linearRampToValueAtTime(v * 0.5, t + 0.04);
+  }
+  // Cuts reverb and delay sends to zero briefly so their tails die out, then
+  // ramps them back. Use after silencing oscillators for an actual full stop.
+  killFXTail(durationSec = 0.3) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const fade = 0.05;
+    const recover = t + fade + durationSec;
+    if (this.wetGain) {
+      const revVal = this.wetGain.gain.value;
+      if (revVal > 0.0005) {
+        this.wetGain.gain.cancelScheduledValues(t);
+        this.wetGain.gain.setValueAtTime(revVal, t);
+        this.wetGain.gain.linearRampToValueAtTime(0, t + fade);
+        this.wetGain.gain.linearRampToValueAtTime(revVal, recover);
+      }
+    }
+    if (this.delayWet) {
+      const delVal = this.delayWet.gain.value;
+      if (delVal > 0.0005) {
+        this.delayWet.gain.cancelScheduledValues(t);
+        this.delayWet.gain.setValueAtTime(delVal, t);
+        this.delayWet.gain.linearRampToValueAtTime(0, t + fade);
+        this.delayWet.gain.linearRampToValueAtTime(delVal, recover);
+      }
+    }
+  }
+  _createReverbIR(duration) {
+    const len = this.ctx.sampleRate * duration;
+    const buf = this.ctx.createBuffer(2, len, this.ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++) {
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+      }
+    }
+    return buf;
+  }
+  setHarmonic(idx, amp, ramp = null) {
+    if (!this.started || idx >= 16) return;
+    const t = this.ctx.currentTime;
+    const target = amp * 0.25;
+    if (ramp !== null && ramp <= 0.1) {
+      // Automatización en vivo (pad XY / recorrido / barra espaciadora): acercamiento exponencial.
+      // setTargetAtTime es la primitiva correcta acá: no cancela ni reinicia, entonces
+      // las actualizaciones a 60 fps fluyen suave por el parámetro y se escucha
+      // el cambio del eje X en tiempo real.
+      this.gains[idx].gain.setTargetAtTime(target, t, Math.max(0.01, ramp / 3));
+    } else {
+      // Clic / conmutador / carga de preajuste: cancela la programación previa y hace una rampa lineal.
+      this.gains[idx].gain.cancelScheduledValues(t);
+      this.gains[idx].gain.setValueAtTime(this.gains[idx].gain.value, t);
+      const dur = ramp !== null ? ramp : (amp > 0 ? 0.3 : 1.2);
+      this.gains[idx].gain.linearRampToValueAtTime(target, t + dur);
+    }
+    if (amp > 0) this.activeHarmonics.add(idx); else this.activeHarmonics.delete(idx);
+  }
+  setFundamental(f) {
+    this.fundamental = f;
+    if (!this.started) return;
+    const t = this.ctx.currentTime;
+    this.oscs.forEach((osc, i) => {
+      osc.frequency.cancelScheduledValues(t);
+      osc.frequency.setValueAtTime(osc.frequency.value, t);
+      osc.frequency.linearRampToValueAtTime(this._freq(i), t + 0.15);
+    });
+  }
+  setTuning(ji) {
+    this.useJI = ji;
+    this.setFundamental(this.fundamental);
+  }
+  getTimeDomainData() {
+    if (!this.analyser) return new Uint8Array(1024);
+    const d = new Uint8Array(this.analyser.fftSize);
+    this.analyser.getByteTimeDomainData(d); return d;
+  }
+  getFrequencyData() {
+    if (!this.analyser) return new Uint8Array(512);
+    const d = new Uint8Array(this.analyser.frequencyBinCount);
+    this.analyser.getByteFrequencyData(d); return d;
+  }
+}
+
+// ═══════════════════════════════════════════
+// VISUALIZADOR DE CARACOLA
+// ═══════════════════════════════════════════
+class ShellVisualizer {
+  constructor(canvas) {
+    this.canvas = canvas; this.c = canvas.getContext('2d');
+    this.spiralB = 0.18; this.chambers = [];
+    this.hoverChamber = -1;
+    this.view = 'spiral';     // 'spiral' | 'profile' | 'harmonic'
+    this.xyCursor = null;     // {x, y} cuando el pad XY está activo; si no, null
+  }
+  setXYCursor(x, y) { this.xyCursor = (x === null) ? null : { x, y }; }
+  resize() {
+    const r = devicePixelRatio || 1;
+    const rect = this.canvas.parentElement.getBoundingClientRect();
+    this.canvas.width = rect.width * r; this.canvas.height = rect.height * r;
+    this.c.scale(r, r); this.w = rect.width; this.h = rect.height;
+  }
+  draw(amplitudes, activeSet, useJI) {
+    const c = this.c;
+    c.clearRect(0, 0, this.w, this.h);
+    this._drawXrayBackground(c);
+    drawGrid(c, this.w, this.h);
+    this.chambers = [];
+    if (this.view === 'harmonic') this._drawHarmonicView(c, amplitudes, activeSet, useJI);
+    else                          this._drawSpiralView(c, amplitudes, activeSet, useJI);
+    // El mese se dibuja en el ápice de la espiral (coincide con la caja centrada visualmente)
+    // para ESP; en ARM va al centro del canvas (el punto medio entre los dos focos).
+    if (this.view === 'harmonic') {
+      this._drawMese(c, activeSet, this.w * 0.5, this.h * 0.5);
+    } else if (this._spiralCenter) {
+      this._drawMese(c, activeSet, this._spiralCenter.cx, this._spiralCenter.cy);
+    }
+    this._drawPath(c);
+    this._drawXYCursor(c);
+  }
+
+  _drawPath(c) {
+    if (!pathPoints.length) return;
+    // Línea conectora
+    if (pathPoints.length > 1) {
+      c.save();
+      c.strokeStyle = 'rgba(255,215,0,0.45)';
+      c.lineWidth = 1;
+      c.setLineDash([3, 4]);
+      c.beginPath();
+      pathPoints.forEach((p, i) => {
+        if (i === 0) c.moveTo(p.x, p.y); else c.lineTo(p.x, p.y);
+      });
+      c.stroke();
+      c.restore();
+    }
+    // Puntos numerados del recorrido
+    c.font = '10px "JetBrains Mono"';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    pathPoints.forEach((p, i) => {
+      const isHover = (pathMode && i === pathHoverIdx);
+      // Aro al pasar el cursor: indica que el clic quita este punto.
+      if (isHover) {
+        c.beginPath(); c.arc(p.x, p.y, 18, 0, Math.PI * 2);
+        c.strokeStyle = 'rgba(255,90,90,0.65)'; c.lineWidth = 1.5;
+        c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
+      }
+      c.beginPath(); c.arc(p.x, p.y, 8, 0, Math.PI * 2);
+      c.fillStyle = 'rgba(15,16,37,0.9)'; c.fill();
+      c.strokeStyle = isHover ? 'rgba(255,120,120,0.95)' : 'rgba(255,215,0,0.85)';
+      c.lineWidth = 1.5; c.stroke();
+      c.fillStyle = isHover ? 'rgba(255,180,180,1)' : 'rgba(255,215,0,0.95)';
+      c.fillText(String(i + 1), p.x, p.y + 0.5);
+    });
+    c.textBaseline = 'alphabetic';
+    // Cabezal animado durante la reproducción
+    if (pathPlaying) {
+      const pos = pathInterpolatedPos();
+      if (pos) {
+        c.fillStyle = 'rgba(255,215,0,0.9)';
+        c.beginPath(); c.arc(pos.x, pos.y, 5, 0, Math.PI * 2); c.fill();
+        c.strokeStyle = 'rgba(255,215,0,0.4)'; c.lineWidth = 1;
+        c.beginPath(); c.arc(pos.x, pos.y, 12, 0, Math.PI * 2); c.stroke();
+      }
+    }
+  }
+
+  _drawXYCursor(c) {
+    if (!this.xyCursor) return;
+    const { x, y } = this.xyCursor;
+    // Aro exterior + punto central + guías tenues
+    c.strokeStyle = 'rgba(255,215,0,0.35)'; c.lineWidth = 1;
+    c.setLineDash([3, 4]);
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x, this.h); c.stroke();
+    c.beginPath(); c.moveTo(0, y); c.lineTo(this.w, y); c.stroke();
+    c.setLineDash([]);
+    c.strokeStyle = 'rgba(255,215,0,0.85)'; c.lineWidth = 2;
+    c.beginPath(); c.arc(x, y, 9, 0, Math.PI * 2); c.stroke();
+    c.fillStyle = 'rgba(255,215,0,0.95)';
+    c.beginPath(); c.arc(x, y, 3, 0, Math.PI * 2); c.fill();
+  }
+
+  _drawXrayBackground(c) {
+    // Fondo plano; sin gradiente
+    c.fillStyle = 'rgba(15,16,37,1)';
+    c.fillRect(0, 0, this.w, this.h);
+  }
+
+  // ── ESPIRAL (vista superior tipo rayos X) ──────────────────────────────────
+  _drawSpiralView(c, amplitudes, activeSet, useJI) {
+    const maxR = Math.min(this.w, this.h) * 0.38;
+    const numH = amplitudes.length;
+    const thMax = Math.PI * 5.5;
+    const b = this.spiralB;
+    const a = (maxR * 0.95) / Math.exp(b * thMax);
+    const thetaAt = (k) => thMax * Math.pow(Math.max(0, (numH - k)) / numH, 0.55);
+    const visT = Date.now() * 0.001;
+    // Centrar horizontalmente por caja envolvente para que la espiral no derive hacia un lado;
+    // mantener el ápice (y por lo tanto el mese) en h/2 para alinearlo con el eje central
+    // del panel de ondas a la izquierda.
+    let minPx = Infinity, maxPx = -Infinity;
+    for (let th = 0; th < thMax; th += 0.05) {
+      const r = a * Math.exp(b * th);
+      if (r > maxR) break;
+      const px = r * Math.cos(th);
+      if (px < minPx) minPx = px;
+      if (px > maxPx) maxPx = px;
+    }
+    const bboxCx = (minPx + maxPx) / 2;
+    const cx = this.w * 0.5 - bboxCx;
+    const cy = this.h * 0.5;
+    this._spiralCenter = { cx, cy };  // expuesto para dibujar el mese
+    // Columna de la espiral, más visible para que el estado vacío todavía se lea como caracola.
+    c.beginPath(); c.strokeStyle = 'rgba(170,190,225,0.25)'; c.lineWidth = 1;
+    for (let th = 0; th < thMax; th += 0.02) {
+      const r = a * Math.exp(b * th);
+      if (r > maxR) break;
+      const x = cx + r * Math.cos(th), y = cy - r * Math.sin(th);
+      th === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+    }
+    c.stroke();
+    for (let i = 0; i < numH; i++) {
+      const amp = amplitudes[i] || 0;
+      const thStart = thetaAt(i + 1);
+      const thEnd = thetaAt(i);
+      const rMid = a * Math.exp(b * ((thStart + thEnd) / 2));
+      if (rMid > maxR) continue;
+      const color = HARMONICS[i]?.color || '#666';
+      const isActive = activeSet.has(i);
+      const ratio = useJI ? (i + 1) : Math.pow(2, ET_SEMITONES[i] / 12);
+      const visFreq = 0.25 * ratio;
+      const wave = isActive ? Math.sin(visT * visFreq * Math.PI * 2) : 0;
+      const alpha = isActive ? (0.4 + amp * 0.55) : 0.14;
+      const thickness = Math.max(1.5, 3 + amp * 18 + wave * amp * 7);
+      // Arco de cámara
+      c.beginPath(); c.lineWidth = thickness; c.lineCap = 'round';
+      c.strokeStyle = color + Math.round(alpha * 255).toString(16).padStart(2, '0');
+      const steps = 30;
+      for (let s = 0; s <= steps; s++) {
+        const th = thStart + (thEnd - thStart) * (s / steps);
+        const r = a * Math.exp(b * th);
+        c[s === 0 ? 'moveTo' : 'lineTo'](cx + r * Math.cos(th), cy - r * Math.sin(th));
+      }
+      c.stroke();
+      // Costillas radiales sobre el grosor de la cámara (líneas de crecimiento tipo rayos X)
+      if (isActive && amp > 0.15) {
+        c.strokeStyle = color + Math.round(alpha * 0.45 * 255).toString(16).padStart(2, '0');
+        c.lineWidth = 1;
+        const numRibs = 4 + i;
+        for (let rib = 0; rib < numRibs; rib++) {
+          const th = thStart + (thEnd - thStart) * ((rib + 0.5) / numRibs);
+          const rBase = a * Math.exp(b * th);
+          const x1 = cx + (rBase - thickness * 0.5) * Math.cos(th);
+          const y1 = cy - (rBase - thickness * 0.5) * Math.sin(th);
+          const x2 = cx + (rBase + thickness * 0.5) * Math.cos(th);
+          const y2 = cy - (rBase + thickness * 0.5) * Math.sin(th);
+          c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+        }
+      }
+      const thMid = (thStart + thEnd) / 2;
+      this.chambers.push({
+        idx: i, x: cx + rMid * Math.cos(thMid), y: cy - rMid * Math.sin(thMid),
+        r: thickness + 6, thStart, thEnd
+      });
+    }
+  }
+
+  // ── ARMÓNICOS (ondas estacionarias, imagen de referencia Bernstein/Petersen) ──
+  // Cada armónico activo Hn se dibuja como onda estacionaria con n medias longitudes de onda
+  // entre dos focos fijos. y(x,t) = amp · sin(n·π·(x+L)/(2L)) · cos(2π·f_vis·t).
+  _drawHarmonicView(c, amplitudes, activeSet, useJI) {
+    const cx = this.w * 0.5, cy = this.h * 0.5;
+    const numH = amplitudes.length;
+    const visT = Date.now() * 0.001;
+    const L = Math.min(this.w, this.h) * 0.42;
+    // Igualar el rango vertical del panel de ondas (h * 0.35) para que ambas visualizaciones
+    // respiren a la misma altura.
+    const maxHeight = this.h * 0.35;
+    // Línea base (línea de reposo de la fundamental)
+    c.strokeStyle = 'rgba(170,190,225,0.18)'; c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(cx - L, cy); c.lineTo(cx + L, cy); c.stroke();
+    // Marcadores de focos
+    c.fillStyle = 'rgba(255,215,0,0.55)';
+    c.beginPath(); c.arc(cx - L, cy, 3, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(cx + L, cy, 3, 0, Math.PI * 2); c.fill();
+    for (let i = 0; i < numH; i++) {
+      const amp = amplitudes[i] || 0;
+      const isActive = activeSet.has(i);
+      if (!isActive || amp < 0.01) continue;
+      const n = i + 1;
+      const color = HARMONICS[i]?.color || '#666';
+      const ratio = useJI ? (i + 1) : Math.pow(2, ET_SEMITONES[i] / 12);
+      const visFreq = 0.25 * ratio;
+      // Igualar exactamente la norma de amplitud del panel de ondas para que ambas visualizaciones
+      // compartan la misma escala vertical por armónico.
+      const norm = amp / (1 + i * 0.15);
+      // Respiración sutil: timeMod queda entre 0.85 y 1.0; nunca colapsa.
+      const timeMod = 0.925 + 0.075 * Math.cos(visT * visFreq * Math.PI * 2);
+      const visAmp = maxHeight * norm * timeMod;
+      const alpha = 0.45 + amp * 0.5;
+      c.beginPath();
+      c.strokeStyle = color + Math.round(alpha * 255).toString(16).padStart(2, '0');
+      c.lineWidth = Math.max(1, 1.5 + amp * 1.5);
+      const steps = 220;
+      for (let s = 0; s <= steps; s++) {
+        const x = -L + 2 * L * (s / steps);
+        const y = -visAmp * Math.sin(n * Math.PI * (x + L) / (2 * L));
+        const sx = cx + x, sy = cy + y;
+        c[s === 0 ? 'moveTo' : 'lineTo'](sx, sy);
+      }
+      c.stroke();
+    }
+    // Cámaras ficticias para que no se rompa el código que lee this.chambers.
+    for (let i = 0; i < numH; i++) {
+      this.chambers.push({ idx: i, x: -1, y: -1, r: 0, thStart: 0, thEnd: 0 });
+    }
+  }
+
+  _drawMese(c, activeSet, cx, cy) {
+    const visible = activeSet.size > 2 ? 0.7 : 0.25;
+    c.beginPath(); c.arc(cx, cy, 4, 0, Math.PI * 2);
+    c.fillStyle = `rgba(255,215,0,${visible})`; c.fill();
+    c.font = '9px "JetBrains Mono"'; c.fillStyle = `rgba(255,215,0,${visible * 0.7})`;
+    c.textAlign = 'center'; c.fillText('MESE', cx, cy + 18);
+  }
+
+  hitTest(mx, my) {
+    for (const ch of this.chambers) {
+      const dx = mx - ch.x, dy = my - ch.y;
+      if (dx * dx + dy * dy < ch.r * ch.r) return ch.idx;
+    }
+    return -1;
+  }
+}
+
+// ═══════════════════════════════════════════
+// VISUALIZADOR DE ONDAS
+// ═══════════════════════════════════════════
+class WaveDisplay {
+  constructor(canvas) {
+    this.canvas = canvas; this.c = canvas.getContext('2d');
+    this.mode = 'separated'; // 'separated' | 'superimposed'
+    this.time = 0;
+  }
+  resize() {
+    const r = devicePixelRatio || 1;
+    const rect = this.canvas.parentElement.getBoundingClientRect();
+    this.canvas.width = rect.width * r; this.canvas.height = rect.height * r;
+    this.c.scale(r, r); this.w = rect.width; this.h = rect.height;
+  }
+  draw(amplitudes, activeSet, useJI, fundamental) {
+    const c = this.c; c.clearRect(0, 0, this.w, this.h);
+    drawGrid(c, this.w, this.h);
+    const active = [...activeSet].sort((a, b) => a - b);
+    if (active.length === 0) {
+      // Dibujar solo la línea del mese.
+      c.strokeStyle = 'rgba(100,120,200,0.15)'; c.lineWidth = 1;
+      c.setLineDash([4, 4]);
+      c.beginPath(); c.moveTo(0, this.h / 2); c.lineTo(this.w, this.h / 2); c.stroke();
+      c.setLineDash([]);
+      c.font = '10px "JetBrains Mono"'; c.fillStyle = 'rgba(100,120,200,0.3)';
+      c.textAlign = 'center'; c.fillText('clic en [+] para agregar armónicos', this.w / 2, this.h / 2 - 12);
+      return;
+    }
+    if (this.mode === 'separated') this._drawSeparated(c, amplitudes, active);
+    else this._drawSuperimposed(c, amplitudes, active, useJI, fundamental);
+  }
+  _drawSeparated(c, amplitudes, active) {
+    const rowH = Math.min(60, (this.h - 20) / active.length);
+    const visT = Date.now() * 0.001;
+    active.forEach((idx, i) => {
+      const cy = 15 + rowH * i + rowH / 2;
+      const amp = amplitudes[idx] || 0;
+      const color = HARMONICS[idx]?.color || '#666';
+      const freq = idx + 1;
+      const omega = 2 * Math.PI * 0.25 * freq;
+      // Línea del mese
+      c.strokeStyle = 'rgba(100,120,200,0.08)'; c.lineWidth = 0.5;
+      c.beginPath(); c.moveTo(30, cy); c.lineTo(this.w - 10, cy); c.stroke();
+      // Etiqueta
+      c.font = '9px "JetBrains Mono"'; c.fillStyle = color + '99';
+      c.textAlign = 'right'; c.fillText(`H${freq}`, 26, cy + 3);
+      // Onda
+      c.beginPath(); c.strokeStyle = color; c.lineWidth = 1.5; c.globalAlpha = 0.4 + amp * 0.6;
+      const waveW = this.w - 40;
+      const phaseScale = (Math.PI * 2 * 2) / waveW;
+      for (let x = 0; x <= waveW; x += 2) {
+        const phase = x * phaseScale * freq + visT * omega;
+        const y = cy + Math.sin(phase) * (rowH * 0.35) * amp;
+        x === 0 ? c.moveTo(30 + x, y) : c.lineTo(30 + x, y);
+      }
+      c.stroke(); c.globalAlpha = 1;
+    });
+  }
+  _drawSuperimposed(c, amplitudes, active, useJI, fundamental) {
+    const cy = this.h / 2;
+    const maxAmp = this.h * 0.35;
+    const waveW = this.w - 40;
+    const visT = Date.now() * 0.001;
+    // Más ciclos para que las relaciones enteras de JI converjan visualmente mientras ET deriva.
+    const cycles = 4;
+    const phaseScale = (Math.PI * 2 * cycles) / waveW;
+    // Línea del mese
+    c.strokeStyle = 'rgba(100,120,200,0.15)'; c.lineWidth = 0.5;
+    c.beginPath(); c.moveTo(20, cy); c.lineTo(this.w - 20, cy); c.stroke();
+    // Precalcular relaciones una vez para dibujar y analizar con los mismos datos.
+    // Cada armónico oscila con omega = 2π · 0.25 · relación rad/s: la misma escala
+    // que usa la caracola para vibrar, así ambos paneles se mueven al mismo ritmo.
+    const ratios = active.map(idx => useJI ? (idx + 1) : Math.pow(2, ET_SEMITONES[idx] / 12));
+    const norms = active.map(idx => (amplitudes[idx] || 0) / (1 + idx * 0.15));
+    const omegas = ratios.map(r => 2 * Math.PI * 0.25 * r);
+    active.forEach((idx, k) => {
+      const amp = amplitudes[idx] || 0;
+      const color = HARMONICS[idx]?.color || '#666';
+      const ratio = ratios[k];
+      const omega = omegas[k];
+      c.beginPath(); c.strokeStyle = color; c.lineWidth = 1.5; c.globalAlpha = 0.3 + amp * 0.5;
+      for (let x = 0; x <= waveW; x += 2) {
+        const phase = x * phaseScale * ratio + visT * omega;
+        const y = cy + Math.sin(phase) * maxAmp * norms[k];
+        x === 0 ? c.moveTo(20 + x, y) : c.lineTo(20 + x, y);
+      }
+      c.stroke(); c.globalAlpha = 1;
+    });
+    // Mese: buscar la x donde todas las ondas activas están más cerca de cero (punto real de convergencia).
+    // En JI, con relaciones enteras, aparece periódicamente un cruce cercano a cero;
+    // en ET, las relaciones irracionales impiden una alineación perfecta y el puntaje nunca llega a 0.
+    let minScore = Infinity, bestX = waveW / 2;
+    const totalEnergy = norms.reduce((s, n) => s + n, 0);
+    if (active.length > 1 && totalEnergy > 0) {
+      for (let x = 0; x <= waveW; x += 4) {
+        let score = 0;
+        for (let k = 0; k < active.length; k++) {
+          if (norms[k] < 0.01) continue;
+          const phase = x * phaseScale * ratios[k] + visT * omegas[k];
+          score += Math.abs(Math.sin(phase)) * norms[k];
+        }
+        if (score < minScore) { minScore = score; bestX = x; }
+      }
+    }
+    // Coherencia: 1 = convergencia perfecta (JI), <1 = dispersión (ET)
+    const coherence = (active.length > 1 && totalEnergy > 0)
+      ? Math.max(0, 1 - minScore / (totalEnergy * 0.35)) : 0;
+    const meseX = 20 + bestX;
+    const visible = active.length > 1 ? (0.25 + coherence * 0.7) : 0.2;
+    c.beginPath(); c.arc(meseX, cy, 3, 0, Math.PI * 2);
+    c.fillStyle = `rgba(255,215,0,${visible})`; c.fill();
+    c.font = '9px "JetBrains Mono"'; c.fillStyle = `rgba(255,215,0,${visible})`;
+    c.textAlign = 'center'; c.fillText('MESE', meseX, cy + 14);
+  }
+}
+
+// ═══════════════════════════════════════════
+// ESTADO E INTERACCIÓN DE LA APP
+// ═══════════════════════════════════════════
+const audio = new AudioEngine();
+const shellViz = new ShellVisualizer(document.getElementById('shell-canvas'));
+const waveViz = new WaveDisplay(document.getElementById('wave-canvas'));
+
+let amplitudes = new Array(16).fill(0);
+let activeHarmonics = new Set();
+let nextHarmonic = 0;
+let currentPreset = 'empty';
+let muted = new Array(16).fill(false);   // silencio por armónico (conserva el valor del deslizador)
+let tonicSemis = 0;                      // desplazamiento de tónica (0=C, 9=A, ...)
+let currentScale = 'major';              // escala usada por el eje Y del pad XY
+let padPitchSemis = 0;                   // desplazamiento actual de altura del eje Y del pad
+let gridOn = false;                      // grilla punteada sobre ambos canvas
+// Estado del secuenciador de recorrido. El cursor del pad XY se automatiza sobre
+// una lista de puntos en coordenadas del canvas, con movimiento de ida y vuelta.
+let pathMode = false;
+let pathPoints = [];
+let pathPlaying = false;
+let pathPlayMode = 'pingpong'; // 'pingpong' = ida/vuelta, 'forward' = adelante en bucle, 'reverse' = atrás en bucle
+let pathDuration = 6;     // segundos para un recorrido completo (inicio → fin)
+let pathT = 0;            // progreso 0..1
+let pathDir = 1;          // +1 adelante, -1 atrás (ida y vuelta)
+let pathLastTime = 0;     // último timestamp de animación para calcular dt
+let pathHoverIdx = -1;    // índice del punto bajo el cursor en modo recorrido
+let holdOn = false;       // false = presionar para sonar; true = sostener después de soltar
+let lastShellPos = null;  // última posición del puntero sobre el canvas de la caracola
+let spaceHeld = false;    // indica si la barra espaciadora está presionada
+let padActive = false;    // indica si el pad XY está siendo usado en este momento
+
+// True when *something* is live-pressed (space or pad). silenceAll() should
+// never run while this is true, otherwise we'd kill an active press.
+function isLivePressing() { return spaceHeld || padActive; }
+
+function stopPathPlayback() {
+  if (!pathPlaying) return;
+  pathPlaying = false;
+  const btn = document.getElementById('path-play');
+  if (btn) { btn.textContent = '▶'; btn.classList.remove('active'); }
+}
+
+function silenceAll() {
+  for (let i = 0; i < 16; i++) {
+    amplitudes[i] = 0;
+    audioSet(i, 0, 0.05);   // release rápido en los osciladores
+    activeHarmonics.delete(i);
+  }
+  // También cortamos las colas de reverb y delay para que el silencio sea real.
+  if (audio.started) audio.killFXTail(0.3);
+  syncSlidersFromAmps();
+}
+
+function findPathPointAt(x, y, hit = 20) {
+  for (let i = 0; i < pathPoints.length; i++) {
+    const p = pathPoints[i];
+    const dx = p.x - x, dy = p.y - y;
+    if (dx * dx + dy * dy < hit * hit) return i;
+  }
+  return -1;
+}
+
+function pathInterpolatedPos() {
+  if (pathPoints.length === 0) return null;
+  if (pathPoints.length === 1) return pathPoints[0];
+  const segs = pathPoints.length - 1;
+  const t = Math.max(0, Math.min(1, pathT)) * segs;
+  const seg = Math.min(segs - 1, Math.floor(t));
+  const local = t - seg;
+  const a = pathPoints[seg], b = pathPoints[seg + 1];
+  return { x: a.x + (b.x - a.x) * local, y: a.y + (b.y - a.y) * local };
+}
+
+function addOrRemovePathPoint(x, y) {
+  const idx = findPathPointAt(x, y, 20);
+  if (idx >= 0) pathPoints.splice(idx, 1);
+  else pathPoints.push({ x, y });
+}
+
+function drawGrid(c, w, h) {
+  if (!gridOn) return;
+  c.save();
+  c.strokeStyle = 'rgba(180,200,230,0.20)';
+  c.lineWidth = 1;
+  c.setLineDash([2, 4]);
+  const step = 40;
+  for (let x = step; x < w; x += step) {
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke();
+  }
+  for (let y = step; y < h; y += step) {
+    c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke();
+  }
+  c.restore();
+}
+
+// audioSet envuelve audio.setHarmonic para que un armónico silenciado siempre suene en 0
+// mientras el deslizador recuerda su valor anterior.
+function audioSet(idx, amp, ramp = null) {
+  if (!audio.started) return;
+  audio.setHarmonic(idx, muted[idx] ? 0 : amp, ramp);
+}
+
+function createSlider(idx) {
+  const h = HARMONICS[idx];
+  const noteLabel = noteForHarmonic(h.n, tonicSemis);
+  const div = document.createElement('div');
+  div.className = 'harmonic-slider';
+  div.innerHTML = `
+    <button class="mute-btn ${muted[idx] ? 'muted' : ''}" data-mute="${idx}" title="Silenciar H${h.n}">S</button>
+    <span class="label">H${h.n}</span>
+    <input type="range" min="0" max="100" value="${Math.round(amplitudes[idx]*100)}"
+      style="accent-color:${h.color}" data-idx="${idx}">
+    <span class="note" data-note="${idx}" style="color:${h.color}">${noteLabel}</span>
+    <span class="value" data-val="${idx}">${Math.round(amplitudes[idx]*100)}%</span>`;
+  div.querySelector('input').addEventListener('input', e => {
+    const v = e.target.value / 100;
+    amplitudes[idx] = v;
+    audioSet(idx, v);
+    if (v > 0) activeHarmonics.add(idx); else activeHarmonics.delete(idx);
+    div.querySelector(`[data-val="${idx}"]`).textContent = Math.round(v * 100) + '%';
+  });
+  div.querySelector('.mute-btn').addEventListener('click', e => {
+    muted[idx] = !muted[idx];
+    e.currentTarget.classList.toggle('muted', muted[idx]);
+    audioSet(idx, amplitudes[idx]);
+  });
+  return div;
+}
+
+function addHarmonic() {
+  if (nextHarmonic >= 16) return;
+  const idx = nextHarmonic++;
+  amplitudes[idx] = idx === 0 ? 1.0 : Math.max(0.1, 1 - idx * 0.06);
+  activeHarmonics.add(idx);
+  audio.init().then(() => audioSet(idx, amplitudes[idx]));
+  const row = document.getElementById('slider-row');
+  row.insertBefore(createSlider(idx), document.getElementById('add-btn'));
+  if (nextHarmonic >= 16) document.getElementById('add-btn').style.display = 'none';
+}
+
+function loadPreset(name) {
+  const p = PRESETS[name]; if (!p) return;
+  currentPreset = name;
+  shellViz.spiralB = p.b;
+  // Una ruta en reproducción sobrescribiría el preset 60 veces/seg — la detenemos.
+  stopPathPlayback();
+  audio.init().then(() => {
+    // Silenciar TODOS los armónicos del estado anterior (evita que Vacío deje audio sonando).
+    for (let i = 0; i < 16; i++) audio.setHarmonic(i, 0);
+    amplitudes.fill(0); activeHarmonics.clear(); nextHarmonic = 0;
+    const row = document.getElementById('slider-row');
+    row.querySelectorAll('.harmonic-slider').forEach(el => el.remove());
+    document.getElementById('add-btn').style.display = 'flex';
+    if (p.amps.length === 0) return;
+    p.amps.forEach((amp, i) => {
+      if (i >= 16) return;
+      amplitudes[i] = amp;
+      if (amp > 0) activeHarmonics.add(i);
+      // El audio solo suena si HOLD está activo; si no, el preajuste solo prepara
+      // deslizadores/visuales y queda en silencio hasta presionar el pad, Espacio o la ruta.
+      audioSet(i, holdOn ? amp : 0);
+      nextHarmonic = i + 1;
+      row.insertBefore(createSlider(i), document.getElementById('add-btn'));
+    });
+    if (nextHarmonic >= 16) document.getElementById('add-btn').style.display = 'none';
+  });
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.dataset.preset === name));
+}
+
+function syncSlidersFromAmps() {
+  const row = document.getElementById('slider-row');
+  for (let i = 0; i < nextHarmonic; i++) {
+    const slider = document.querySelector(`input[data-idx="${i}"]`);
+    const amp = amplitudes[i] || 0;
+    if (!slider) {
+      row.insertBefore(createSlider(i), document.getElementById('add-btn'));
+    } else {
+      slider.value = Math.round(amp * 100);
+      const valEl = document.querySelector(`[data-val="${i}"]`);
+      if (valEl) valEl.textContent = Math.round(amp * 100) + '%';
+    }
+  }
+  document.getElementById('add-btn').style.display = nextHarmonic >= 16 ? 'none' : 'flex';
+}
+
+function applyOumWindow(cursor, sigma = 2.0) {
+  // Eje X del pad XY: ventana gaussiana sobre el eje armónico (pico = cursor·15).
+  const peak = cursor * 15;
+  for (let i = 0; i < 16; i++) {
+    const dist = i - peak;
+    const win = Math.exp(-(dist * dist) / (2 * sigma * sigma));
+    const amp = win * 0.85;
+    amplitudes[i] = amp;
+    audioSet(i, amp, 0.03);   // tau corto para que los barridos XY se sientan en tiempo real
+    if (amp > 0.05) {
+      activeHarmonics.add(i);
+      if (i + 1 > nextHarmonic) nextHarmonic = i + 1;
+    } else {
+      activeHarmonics.delete(i);
+    }
+  }
+  syncSlidersFromAmps();
+}
+
+function shellPositionToXY(mx, my) {
+  // Eje X (horizontal): cursor para la ventana gaussiana armónica.
+  // Eje Y (vertical): normalizado 0..1; arriba = altura alta, abajo = altura baja.
+  const cx = shellViz.w * 0.5, cy = shellViz.h * 0.5;
+  const halfW = shellViz.w * 0.45, halfH = shellViz.h * 0.45;
+  const cursor = Math.max(0, Math.min(1, (mx - (cx - halfW)) / (2 * halfW)));
+  const yNorm  = Math.max(0, Math.min(1, (my - (cy - halfH)) / (2 * halfH)));
+  return { cursor, yNorm };
+}
+
+function applyOumXY(cursor, yNorm) {
+  // X: posición del pico armónico
+  applyOumWindow(cursor, 2.0);
+  // Y: ajustar la altura a la nota más cercana de la escala elegida, con rango de ±2 octavas.
+  const sc = SCALES[currentScale] || SCALES.chromatic;
+  const range = sc.length * 2;
+  const step = Math.round((0.5 - yNorm) * 2 * range);
+  const semis = scaleStepToSemitones(step, sc);
+  if (semis !== padPitchSemis) {
+    padPitchSemis = semis;
+    audio.setPadPitchSemis(semis);
+  }
+}
+
+function refreshSliderNoteLabels() {
+  document.querySelectorAll('.harmonic-slider [data-note]').forEach(el => {
+    const idx = parseInt(el.dataset.note);
+    el.textContent = noteForHarmonic(idx + 1, tonicSemis);
+  });
+}
+
+// Redimensionado
+function handleResize() { shellViz.resize(); waveViz.resize(); }
+window.addEventListener('resize', handleResize);
+handleResize();
+
+// Bucle de animación
+function animate(now) {
+  // Secuenciador de recorrido: avanza pathT según el modo elegido y maneja applyOumXY en tiempo real.
+  if (pathPlaying && pathPoints.length > 0) {
+    if (pathPoints.length >= 2) {
+      const dt = pathLastTime ? (now - pathLastTime) / 1000 : 0;
+      const step = dt / Math.max(0.5, pathDuration);
+      if (pathPlayMode === 'pingpong') {
+        pathT += pathDir * step;
+        if (pathT >= 1) { pathT = 1; pathDir = -1; }
+        else if (pathT <= 0) { pathT = 0; pathDir = 1; }
+      } else if (pathPlayMode === 'forward') {
+        pathT += step;
+        if (pathT > 1) pathT = pathT % 1;
+      } else {
+        pathT -= step;
+        if (pathT < 0) pathT = 1 - ((-pathT) % 1);
+      }
+    }
+    const pos = pathInterpolatedPos();
+    if (pos && audio.started) {
+      const xy = shellPositionToXY(pos.x, pos.y);
+      applyOumXY(xy.cursor, xy.yNorm);
+    }
+  }
+  pathLastTime = now;
+  waveViz.draw(amplitudes, activeHarmonics, audio.useJI, audio.fundamental);
+  shellViz.draw(amplitudes, activeHarmonics, audio.useJI);
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+// Manejadores de eventos
+document.getElementById('add-btn').addEventListener('click', addHarmonic);
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => loadPreset(btn.dataset.preset));
+});
+
+document.getElementById('freq-select').addEventListener('change', e => {
+  audio.init().then(() => audio.setFundamental(Number(e.target.value)));
+});
+
+document.getElementById('ji-toggle').addEventListener('click', () => {
+  audio.init().then(() => {
+    audio.setTuning(true);
+    document.getElementById('ji-toggle').classList.add('active');
+    document.getElementById('et-toggle').classList.remove('active');
+  });
+});
+document.getElementById('et-toggle').addEventListener('click', () => {
+  audio.init().then(() => {
+    audio.setTuning(false);
+    document.getElementById('et-toggle').classList.add('active');
+    document.getElementById('ji-toggle').classList.remove('active');
+  });
+});
+
+document.getElementById('sep-btn').addEventListener('click', () => {
+  waveViz.mode = 'separated';
+  document.getElementById('sep-btn').classList.add('active');
+  document.getElementById('sup-btn').classList.remove('active');
+});
+document.getElementById('sup-btn').addEventListener('click', () => {
+  waveViz.mode = 'superimposed';
+  document.getElementById('sup-btn').classList.add('active');
+  document.getElementById('sep-btn').classList.remove('active');
+});
+
+// Selector de vista de la caracola: mantiene el estado visual del panel sincronizado
+// para que se entienda qué vista está activa.
+document.querySelectorAll('#shell-view-toggle button[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    shellViz.view = btn.dataset.view;
+    document.querySelectorAll('#shell-view-toggle button[data-view]').forEach(b => b.classList.toggle('active', b === btn));
+  });
+});
+
+// Pantalla completa por panel
+document.querySelectorAll('[data-fs]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = document.getElementById(btn.dataset.fs);
+    if (!document.fullscreenElement) target.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  });
+});
+document.addEventListener('fullscreenchange', () => handleResize());
+
+document.getElementById('tonic-select').addEventListener('change', e => {
+  tonicSemis = parseInt(e.target.value);
+  audio.init().then(() => audio.setTonicSemis(tonicSemis));
+  refreshSliderNoteLabels();
+});
+document.getElementById('scale-select').addEventListener('change', e => {
+  currentScale = e.target.value;
+  // Reiniciar la altura del eje Y para que la escala nueva empiece en su tónica.
+  padPitchSemis = 0;
+  audio.init().then(() => audio.setPadPitchSemis(0));
+});
+document.getElementById('wave-select').addEventListener('change', e => {
+  audio.init().then(() => audio.setWaveform(e.target.value));
+});
+document.getElementById('grid-toggle').addEventListener('click', e => {
+  gridOn = !gridOn;
+  e.currentTarget.classList.toggle('active', gridOn);
+});
+
+document.getElementById('path-mode').addEventListener('click', e => {
+  pathMode = !pathMode;
+  e.currentTarget.classList.toggle('active', pathMode);
+});
+document.getElementById('hold-mode').addEventListener('click', e => {
+  holdOn = !holdOn;
+  e.currentTarget.classList.toggle('active', holdOn);
+  audio.init().then(() => {
+    if (holdOn) {
+      // HOLD activado → llevar al audio las amplitudes que muestran los deslizadores.
+      for (let i = 0; i < 16; i++) audioSet(i, amplitudes[i]);
+    } else if (!isLivePressing() && !pathPlaying) {
+      // HOLD desactivado → silenciar salvo que estés tocando ahora (pad, space o path).
+      silenceAll();
+    }
+  });
+});
+function updatePathPlayModeButton() {
+  const btn = document.getElementById('path-play-mode');
+  if (pathPlayMode === 'pingpong') {
+    btn.textContent = '↔';
+    btn.title = 'Modo de reproducción: ida y vuelta';
+  } else if (pathPlayMode === 'forward') {
+    btn.textContent = '→';
+    btn.title = 'Modo de reproducción: bucle hacia adelante';
+  } else {
+    btn.textContent = '←';
+    btn.title = 'Modo de reproducción: bucle hacia atrás';
+  }
+}
+document.getElementById('path-play-mode').addEventListener('click', () => {
+  pathPlayMode = pathPlayMode === 'pingpong' ? 'forward' : pathPlayMode === 'forward' ? 'reverse' : 'pingpong';
+  if (pathPlayMode === 'pingpong') pathDir = 1;
+  updatePathPlayModeButton();
+});
+document.getElementById('path-play').addEventListener('click', e => {
+  pathPlaying = !pathPlaying;
+  e.currentTarget.textContent = pathPlaying ? '■' : '▶';
+  e.currentTarget.classList.toggle('active', pathPlaying);
+  if (pathPlaying) {
+    if (pathPlayMode === 'forward' && pathT >= 1) pathT = 0;
+    if (pathPlayMode === 'reverse' && pathT <= 0) pathT = 1;
+    audio.init();
+    pathLastTime = 0;   // reiniciar dt para que el primer frame no salte
+  } else if (!holdOn && !isLivePressing()) {
+    // Pausar el path con HOLD off → silenciar lo que el path dejó sonando.
+    silenceAll();
+  }
+});
+document.getElementById('path-clear').addEventListener('click', () => {
+  pathPoints = [];
+  pathT = 0; pathDir = 1;
+  stopPathPlayback();
+  if (!holdOn && !isLivePressing()) silenceAll();
+});
+document.getElementById('fx-path-speed').addEventListener('input', e => {
+  const seconds = parseFloat(e.target.value);
+  if (Number.isFinite(seconds) && seconds > 0) pathDuration = seconds;
+});
+document.getElementById('fx-path-speed').addEventListener('change', e => {
+  const seconds = Math.max(0.5, Math.min(60, parseFloat(e.target.value) || 6));
+  e.target.value = seconds;
+  pathDuration = seconds;
+});
+
+
+// Controles de efectos: mezcla de reverb, eco, tiempo y retorno. Todos apuntan al AudioEngine.
+function bindFx(sliderId, valId, format, apply) {
+  const s = document.getElementById(sliderId);
+  const v = document.getElementById(valId);
+  s.addEventListener('input', () => {
+    v.textContent = format(s.value);
+    audio.init().then(() => apply(parseFloat(s.value)));
+  });
+  // Inicializar visualización
+  v.textContent = format(s.value);
+}
+bindFx('fx-vol',      'fx-vol-val',      x => `${x}%`,    x => audio.setMasterVolume(x / 100));
+bindFx('fx-rev',      'fx-rev-val',      x => `${x}%`,    x => audio.setReverbMix(x / 100));
+bindFx('fx-del',      'fx-del-val',      x => `${x}%`,    x => audio.setDelayMix(x / 100));
+bindFx('fx-del-time', 'fx-del-time-val', x => `${x}ms`,   x => audio.setDelayTime(x / 1000));
+bindFx('fx-del-fb',   'fx-del-fb-val',   x => `${x}%`,    x => audio.setDelayFeedback(x / 100));
+bindFx('fx-vib',      'fx-vib-val',      x => `${x}%`,    x => audio.setVibrato(x / 100));
+
+// Interacción de puntero con la caracola (mouse + táctil con Pointer Events).
+// Toque rápido → activa o desactiva una cámara.
+// Arrastrar (>8px) o mantener (>180ms) → entra al modo pad XY:
+//   X = cursor armónico (pico de la ventana gaussiana)
+//   Y = altura ajustada a la escala elegida (transpone toda la serie)
+(() => {
+  const shell = document.getElementById('shell-canvas');
+  const DRAG_THRESHOLD = 8;
+  const HOLD_MS = 180;
+  let pointerId = null, downX = 0, downY = 0, isPad = false, holdTimer = null, lastP = null;
+
+  function localPos(e) {
+    const rect = shell.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function toggleChamber(hit) {
+    if (hit < 0 || hit >= 16) return;
+    const isActive = activeHarmonics.has(hit);
+    const newAmp = isActive ? 0 : (hit === 0 ? 1.0 : Math.max(0.1, 1 - hit * 0.06));
+    amplitudes[hit] = newAmp;
+    audio.init().then(() => audioSet(hit, newAmp));
+    if (newAmp > 0) {
+      activeHarmonics.add(hit);
+      if (hit + 1 > nextHarmonic) nextHarmonic = hit + 1;
+    } else {
+      activeHarmonics.delete(hit);
+    }
+    syncSlidersFromAmps();
+  }
+
+  function enterPad(p) {
+    isPad = true;
+    padActive = true;
+    audio.init().then(() => {
+      const xy = shellPositionToXY(p.x, p.y);
+      applyOumXY(xy.cursor, xy.yNorm);
+      shellViz.setXYCursor(p.x, p.y);
+    });
+  }
+
+  shell.addEventListener('pointerdown', e => {
+    pointerId = e.pointerId;
+    const p = localPos(e);
+    downX = p.x; downY = p.y; lastP = p; lastShellPos = p; isPad = false;
+    shell.setPointerCapture(e.pointerId);
+    // No entrar al pad en modo PATH; ahí los clics agregan o quitan puntos.
+    holdTimer = setTimeout(() => { if (lastP && !pathMode) enterPad(lastP); }, HOLD_MS);
+  });
+
+  shell.addEventListener('pointermove', e => {
+    const p = localPos(e);
+    lastShellPos = p;
+    // Detección al pasar el cursor en modo PATH (sin arrastre activo)
+    if (pathMode && pointerId === null) {
+      pathHoverIdx = findPathPointAt(p.x, p.y, 20);
+      return;
+    }
+    // Barra espaciadora presionada: pad XY en vivo mientras el mouse se mueve sobre la caracola.
+    if (spaceHeld && pointerId === null) {
+      audio.init().then(() => {
+        const xy = shellPositionToXY(p.x, p.y);
+        applyOumXY(xy.cursor, xy.yNorm);
+        shellViz.setXYCursor(p.x, p.y);
+      });
+      return;
+    }
+    if (e.pointerId !== pointerId) return;
+    lastP = p;
+    const dx = p.x - downX, dy = p.y - downY;
+    if (!isPad && !pathMode && (dx * dx + dy * dy) > DRAG_THRESHOLD * DRAG_THRESHOLD) {
+      clearTimeout(holdTimer);
+      enterPad(p);
+    } else if (isPad) {
+      audio.init().then(() => {
+        const xy = shellPositionToXY(p.x, p.y);
+        applyOumXY(xy.cursor, xy.yNorm);
+        shellViz.setXYCursor(p.x, p.y);
+      });
+    }
+  });
+
+  shell.addEventListener('pointerleave', () => { pathHoverIdx = -1; });
+
+  function endPointer(e) {
+    if (e.pointerId !== pointerId) return;
+    clearTimeout(holdTimer);
+    if (!isPad) {
+      const p = localPos(e);
+      if (pathMode) addOrRemovePathPoint(p.x, p.y);
+      else toggleChamber(shellViz.hitTest(p.x, p.y));
+    } else if (!holdOn) {
+      // Presionar para sonar: al soltar el pad se silencia todo.
+      silenceAll();
+    }
+    try { shell.releasePointerCapture(e.pointerId); } catch (_) {}
+    shellViz.setXYCursor(null, null);
+    pointerId = null; isPad = false; padActive = false; lastP = null;
+  }
+  shell.addEventListener('pointerup', endPointer);
+  shell.addEventListener('pointercancel', endPointer);
+})();
+
+// Panel lateral de configuración + capa de ayuda
+const settingsSidebar = document.getElementById('settings-sidebar');
+const settingsScrim = document.getElementById('settings-scrim');
+const settingsToggle = document.getElementById('settings-toggle');
+const settingsClose = document.getElementById('settings-close');
+
+function setSettingsOpen(open) {
+  settingsSidebar.classList.toggle('open', open);
+  settingsScrim.classList.toggle('visible', open);
+  settingsSidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
+  settingsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  settingsToggle.classList.toggle('active', open);
+}
+
+settingsToggle.addEventListener('click', () => {
+  setSettingsOpen(!settingsSidebar.classList.contains('open'));
+});
+settingsClose.addEventListener('click', () => setSettingsOpen(false));
+settingsScrim.addEventListener('click', () => setSettingsOpen(false));
+
+document.getElementById('help-btn').addEventListener('click', () => {
+  document.getElementById('help-overlay').classList.add('visible');
+});
+document.getElementById('close-help').addEventListener('click', () => {
+  document.getElementById('help-overlay').classList.remove('visible');
+});
+document.getElementById('help-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) document.getElementById('help-overlay').classList.remove('visible');
+});
+
+// Atajos de teclado
+document.addEventListener('keydown', e => {
+  // Barra espaciadora = presionar para sonar en la caracola usando la última posición visitada.
+  // Se ignora si PATH está activo o si el foco está en campos de entrada.
+  if (e.code === 'Space' && !spaceHeld && !pathMode &&
+      e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+    spaceHeld = true;
+    e.preventDefault();
+    audio.init().then(() => {
+      const p = lastShellPos || { x: shellViz.w * 0.5, y: shellViz.h * 0.5 };
+      const xy = shellPositionToXY(p.x, p.y);
+      applyOumXY(xy.cursor, xy.yNorm);
+      shellViz.setXYCursor(p.x, p.y);
+    });
+    return;
+  }
+  if (e.key === '?' || e.key === 'h') {
+    document.getElementById('help-overlay').classList.toggle('visible');
+  }
+  if (e.key === 'Escape' && settingsSidebar.classList.contains('open')) {
+    setSettingsOpen(false);
+  }
+  if (e.key === '+' || e.key === '=') addHarmonic();
+  if (e.key >= '1' && e.key <= '9') {
+    const idx = parseInt(e.key) - 1;
+    if (idx < 16) {
+      const isActive = activeHarmonics.has(idx);
+      const amp = isActive ? 0 : (idx === 0 ? 1.0 : Math.max(0.1, 1 - idx * 0.06));
+      amplitudes[idx] = amp;
+      audio.init().then(() => audio.setHarmonic(idx, amp));
+      if (amp > 0) {
+        activeHarmonics.add(idx);
+        if (idx + 1 > nextHarmonic) nextHarmonic = idx + 1;
+      } else {
+        activeHarmonics.delete(idx);
+      }
+      syncSlidersFromAmps();
+    }
+  }
+});
+
+document.addEventListener('keyup', e => {
+  if (e.code === 'Space' && spaceHeld) {
+    spaceHeld = false;
+    if (!holdOn) silenceAll();
+    shellViz.setXYCursor(null, null);
+  }
+});
+</script>
+</body>
+</html>

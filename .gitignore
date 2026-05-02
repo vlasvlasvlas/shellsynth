@@ -1,0 +1,22 @@
+# Local secrets and dev helpers — never publish these
+.env
+.env.*
+start-claude.sh
+.start-claude.sh
+.claude/
+
+# Exploratory documentation kept private
+/docs/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build / dependency caches (in case any tooling shows up later)
+node_modules/
+*.log
+.cache/
