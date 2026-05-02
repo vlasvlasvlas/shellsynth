@@ -622,6 +622,7 @@ class ShellVisualizer {
 
   _drawPath(c) {
     if (!pathPoints.length) return;
+    const W = this.w, H = this.h;
     // Línea conectora
     if (pathPoints.length > 1) {
       c.save();
@@ -630,7 +631,8 @@ class ShellVisualizer {
       c.setLineDash([3, 4]);
       c.beginPath();
       pathPoints.forEach((p, i) => {
-        if (i === 0) c.moveTo(p.x, p.y); else c.lineTo(p.x, p.y);
+        const px = p.nx * W, py = p.ny * H;
+        if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
       });
       c.stroke();
       c.restore();
@@ -640,19 +642,20 @@ class ShellVisualizer {
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     pathPoints.forEach((p, i) => {
+      const px = p.nx * W, py = p.ny * H;
       const isHover = (pathMode && i === pathHoverIdx);
       // Aro al pasar el cursor: indica que el clic quita este punto.
       if (isHover) {
-        c.beginPath(); c.arc(p.x, p.y, 18, 0, Math.PI * 2);
+        c.beginPath(); c.arc(px, py, 18, 0, Math.PI * 2);
         c.strokeStyle = 'rgba(255,90,90,0.65)'; c.lineWidth = 1.5;
         c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
       }
-      c.beginPath(); c.arc(p.x, p.y, 8, 0, Math.PI * 2);
+      c.beginPath(); c.arc(px, py, 8, 0, Math.PI * 2);
       c.fillStyle = 'rgba(15,16,37,0.9)'; c.fill();
       c.strokeStyle = isHover ? 'rgba(255,120,120,0.95)' : 'rgba(255,215,0,0.85)';
       c.lineWidth = 1.5; c.stroke();
       c.fillStyle = isHover ? 'rgba(255,180,180,1)' : 'rgba(255,215,0,0.95)';
-      c.fillText(String(i + 1), p.x, p.y + 0.5);
+      c.fillText(String(i + 1), px, py + 0.5);
     });
     c.textBaseline = 'alphabetic';
     // Cabezal animado durante la reproducción
@@ -1007,10 +1010,14 @@ function silenceAll() {
   syncSlidersFromAmps();
 }
 
+// Path waypoints are stored as normalized coords {nx, ny} ∈ [0,1] relative to
+// the shell canvas, so that fullscreen / resize doesn't shift their position.
 function findPathPointAt(x, y, hit = 20) {
+  const w = shellViz.w || 1, h = shellViz.h || 1;
   for (let i = 0; i < pathPoints.length; i++) {
     const p = pathPoints[i];
-    const dx = p.x - x, dy = p.y - y;
+    const px = p.nx * w, py = p.ny * h;
+    const dx = px - x, dy = py - y;
     if (dx * dx + dy * dy < hit * hit) return i;
   }
   return -1;
@@ -1018,19 +1025,28 @@ function findPathPointAt(x, y, hit = 20) {
 
 function pathInterpolatedPos() {
   if (pathPoints.length === 0) return null;
-  if (pathPoints.length === 1) return pathPoints[0];
+  const w = shellViz.w || 1, h = shellViz.h || 1;
+  if (pathPoints.length === 1) {
+    return { x: pathPoints[0].nx * w, y: pathPoints[0].ny * h };
+  }
   const segs = pathPoints.length - 1;
   const t = Math.max(0, Math.min(1, pathT)) * segs;
   const seg = Math.min(segs - 1, Math.floor(t));
   const local = t - seg;
   const a = pathPoints[seg], b = pathPoints[seg + 1];
-  return { x: a.x + (b.x - a.x) * local, y: a.y + (b.y - a.y) * local };
+  const nx = a.nx + (b.nx - a.nx) * local;
+  const ny = a.ny + (b.ny - a.ny) * local;
+  return { x: nx * w, y: ny * h };
 }
 
 function addOrRemovePathPoint(x, y) {
   const idx = findPathPointAt(x, y, 20);
-  if (idx >= 0) pathPoints.splice(idx, 1);
-  else pathPoints.push({ x, y });
+  if (idx >= 0) {
+    pathPoints.splice(idx, 1);
+    return;
+  }
+  const w = shellViz.w || 1, h = shellViz.h || 1;
+  pathPoints.push({ nx: x / w, ny: y / h });
 }
 
 function drawGrid(c, w, h) {
