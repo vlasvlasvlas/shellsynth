@@ -15,7 +15,7 @@
   --h5: #f0e130; --h6: #7bc950; --h7: #2ec4b6; --h8: #00b4d8;
   --h9: #3a86ff; --h10: #5e60ce; --h11: #7b2ff7; --h12: #9d4edd;
   --h13: #c77dff; --h14: #e0aaff; --h15: #f0c8ff; --h16: #ffd6ff;
-  --mese-glow: #ffd700; --accent: #3a86ff;
+  --brillo-dorado: #ffd700; --accent: #3a86ff;
   font-family: 'JetBrains Mono', monospace;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -38,12 +38,12 @@ header h1 { flex:0 0 auto; font-size:13px; font-weight:400; letter-spacing:2px; 
   height:30px; padding:4px 8px; border-radius:4px; font-family:inherit; font-size:12px; cursor:pointer; }
 .toggle-btn { background:none; border:1px solid var(--glass-border); color:var(--text-dim);
   min-height:28px; padding:4px 10px; border-radius:4px; cursor:pointer; font-family:inherit; font-size:11px; transition:all 0.3s; }
-.toggle-btn.active { color:var(--mese-glow); border-color:var(--mese-glow); }
+.toggle-btn.active { color:var(--brillo-dorado); border-color:var(--brillo-dorado); }
 .toggle-btn:hover { border-color:var(--accent); color:var(--text); }
 .icon-btn { background:none; border:1px solid var(--glass-border); color:var(--text-dim);
   width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; transition:all 0.3s; display:flex; align-items:center; justify-content:center; }
 .icon-btn:hover { border-color:var(--accent); color:var(--text-bright); }
-.icon-btn.active { color:var(--mese-glow); border-color:var(--mese-glow); }
+.icon-btn.active { color:var(--brillo-dorado); border-color:var(--brillo-dorado); }
 
 /* PANEL LATERAL DE CONFIGURACIÓN */
 .settings-scrim { position:fixed; inset:0; background:rgba(4,5,14,0.46); opacity:0;
@@ -86,7 +86,7 @@ canvas { width:100%; height:100%; display:block; }
 .slider-row::-webkit-scrollbar { display:none; }
 .add-btn { width:36px; min-width:36px; height:80px; background:var(--bg3); border:1px dashed var(--glass-border);
   border-radius:6px; color:var(--text-dim); font-size:20px; cursor:pointer; transition:all 0.3s;
-  display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; position:sticky; left:0; z-index:2; }
 .add-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(58,134,255,0.05); }
 .harmonic-slider { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:44px; }
 .harmonic-slider .label { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--text-dim); }
@@ -111,7 +111,7 @@ canvas { width:100%; height:100%; display:block; }
   padding:4px 12px; border-radius:4px; cursor:pointer; font-family:inherit;
   font-size:11px; letter-spacing:0.5px; transition:all 0.3s; white-space:nowrap; }
 .preset-btn:hover { border-color:var(--accent); color:var(--text); }
-.preset-btn.active { border-color:var(--mese-glow); color:var(--mese-glow); }
+.preset-btn.active { border-color:var(--brillo-dorado); color:var(--brillo-dorado); }
 .wave-mode-toggle { position:absolute; top:8px; right:12px; display:flex; gap:4px; z-index:2; }
 .path-toolbar { position:absolute; top:44px; right:12px; display:flex; align-items:center; gap:4px;
   max-width:calc(100% - 24px); overflow-x:auto; scrollbar-width:none; z-index:2; }
@@ -120,7 +120,7 @@ canvas { width:100%; height:100%; display:block; }
   background:rgba(15,16,37,0.72); border:1px solid var(--glass-border); border-radius:4px;
   font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim); }
 .path-speed input { width:42px; height:20px; background:transparent; border:0; color:var(--text);
-  font:inherit; text-align:right; outline:none; }
+  font:inherit; text-align:right; outline:none; appearance:textfield; -moz-appearance:textfield; }
 .path-speed input::-webkit-outer-spin-button,
 .path-speed input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 #path-play-mode { min-width:28px; font-size:14px; line-height:1; }
@@ -133,7 +133,7 @@ canvas { width:100%; height:100%; display:block; }
 .help-content { max-width:640px; padding:40px; color:var(--text); line-height:1.7; font-size:12px; }
 .help-content h2 { font-size:16px; font-weight:500; color:var(--text-bright); margin-bottom:16px; letter-spacing:1.5px; text-transform:uppercase; }
 .help-content p { margin-bottom:12px; }
-.help-content blockquote { border-left:2px solid var(--mese-glow); padding-left:16px; color:var(--text-dim);
+.help-content blockquote { border-left:2px solid var(--brillo-dorado); padding-left:16px; color:var(--text-dim);
   font-style:italic; margin:16px 0; }
 .help-content .close-help { position:absolute; top:20px; right:20px; background:none; border:none;
   color:var(--text-dim); font-size:24px; cursor:pointer; }
@@ -275,6 +275,7 @@ canvas { width:100%; height:100%; display:block; }
         <button class="toggle-btn" data-fs="shell-panel" title="Pantalla completa">⛶</button>
         <button class="toggle-btn active" data-view="spiral" title="Vista superior tipo rayos X">ESP</button>
         <button class="toggle-btn" data-view="harmonic" title="Serie armónica — ondas estacionarias">ARM</button>
+        <button class="toggle-btn" data-view="shell" title="Shell generado por armónicos">SHELL</button>
       </div>
       <div class="path-toolbar" aria-label="Controles de recorrido">
         <button class="toggle-btn" id="path-mode" title="Path mode — clic para agregar puntos, doble clic para quitar">PATH</button>
@@ -309,14 +310,14 @@ canvas { width:100%; height:100%; display:block; }
   <div class="help-content">
     <button class="close-help" id="close-help">✕</button>
     <h2>🐚 ShellSynth</h2>
-    <p>Una meditación interactiva sobre la conexión entre la serie armónica y la geometría de las caracolas.</p>
-    <blockquote>"La meta más alta de la música es conectar el alma con su naturaleza divina, no entretener." — Pitágoras</blockquote>
+    <p>Un sintetizador audiovisual que mapea armónicos sobre geometrías inspiradas en conchas marinas.</p>
     <p>La estructura de los primeros armónicos de un sonido refleja las cámaras espirales de una caracola. Cada cámara es un armónico: hacé clic en <strong>[+]</strong> para sumarlos uno por uno y escuchar cómo se construye el timbre.</p>
     <p><strong>Deslizadores</strong> — ajustan la amplitud de cada armónico. La caracola se transforma en tiempo real.</p>
     <p><strong>Clic en la caracola</strong> — activa o desactiva armónicos individuales tocando sus cámaras.</p>
-    <p><strong>Arrastrar sobre la caracola</strong> — barré desde la apertura hasta el ápice para un gesto tipo OUM.</p>
+    <p><strong>Arrastrar sobre la caracola</strong> — barré desde la apertura hasta el ápice para un barrido continuo.</p>
+    <p><strong>SHELL</strong> — muestra una concha generada desde los armónicos: los graves ensanchan el cuerpo, los medios cierran la espiral y los agudos marcan costillas más finas.</p>
     <p><strong>PATH</strong> — agregá puntos sobre la caracola. El botón <strong>↔ / → / ←</strong> cambia entre ida y vuelta, bucle hacia adelante o bucle inverso.</p>
-    <p><strong>JI / ET</strong> — alterna entre entonación justa (convergencia natural en el punto mese) y temperamento igual (afinación moderna donde las ondas no llegan perfecto al mese).</p>
+    <p><strong>JI / ET</strong> — alterna entre entonación justa (relaciones enteras exactas) y temperamento igual (afinación moderna por semitonos iguales).</p>
     <p><strong>Preajustes</strong> — especies reales de caracolas con perfiles armónicos propios.</p>
     <p>Basado en investigaciones de Stephanie McPeak Petersen, Pradeep Kariyawasam y las conferencias de Leonard Bernstein en Harvard (1973).</p>
   </div>
@@ -347,6 +348,64 @@ const PRESETS = {
   // amplitudes que decaen por 1/φ en cada armónico (autosimilar por construcción).
   phi: { name:'Phi', b:0.3063, amps:[1,.618,.382,.236,.146,.090,.056,.034,.021,.013,.008,.005,.003,.002,.001,0] }
 };
+
+const SHELL_STYLES = {
+  empty: {
+    scale:0.88, turns:4.0, curl:0.95, tube:0.86, flare:0.9, ribs:0.75, spines:0, warp:0.65, bands:0.7,
+    fill:['rgba(150,165,205,0.18)', 'rgba(58,134,255,0.14)', 'rgba(210,220,245,0.18)'],
+    outline:'rgba(205,220,250,0.24)', aperture:'rgba(220,230,255,0.32)',
+    apertureFill:'rgba(5,6,18,0.62)', lines:'rgba(220,230,255,0.12)',
+    ribPalette:['#9fb2d8', '#b9c5e4', '#829ac8']
+  },
+  nautilus: {
+    scale:0.95, turns:4.75, curl:0.82, tube:1.0, flare:0.92, ribs:0.9, spines:0, warp:0.45, bands:1.05,
+    fill:['rgba(245,224,178,0.42)', 'rgba(126,94,60,0.30)', 'rgba(255,244,213,0.34)'],
+    outline:'rgba(255,236,190,0.46)', aperture:'rgba(255,239,196,0.62)',
+    apertureFill:'rgba(12,8,5,0.66)', lines:'rgba(255,239,204,0.18)',
+    ribPalette:['#f0d99b', '#8a5d36', '#d2a15d', '#fff1c7']
+  },
+  murex: {
+    scale:1.03, turns:4.55, curl:1.08, tube:0.92, flare:0.86, ribs:1.42, spines:0.9, warp:0.95, bands:1.25,
+    fill:['rgba(210,166,215,0.36)', 'rgba(96,74,130,0.32)', 'rgba(238,206,222,0.30)'],
+    outline:'rgba(232,202,232,0.44)', aperture:'rgba(238,210,228,0.58)',
+    apertureFill:'rgba(12,7,19,0.68)', lines:'rgba(234,205,244,0.16)',
+    ribPalette:['#d8afd6', '#875c99', '#f0d1db', '#b78ab9']
+  },
+  shankha: {
+    scale:1.0, turns:4.25, curl:1.08, tube:1.08, flare:1.22, ribs:0.82, spines:0.08, warp:0.58, bands:0.82,
+    fill:['rgba(255,248,222,0.40)', 'rgba(221,192,135,0.26)', 'rgba(255,255,238,0.38)'],
+    outline:'rgba(255,244,205,0.52)', aperture:'rgba(255,234,180,0.70)',
+    apertureFill:'rgba(14,10,7,0.62)', lines:'rgba(255,246,220,0.17)',
+    ribPalette:['#fff0c5', '#d6b26c', '#f7dfaa', '#fff8de']
+  },
+  triton: {
+    scale:1.04, turns:4.55, curl:0.98, tube:0.94, flare:1.05, ribs:1.18, spines:0.58, warp:0.78, bands:1.18,
+    fill:['rgba(229,161,94,0.38)', 'rgba(109,74,52,0.30)', 'rgba(250,218,155,0.30)'],
+    outline:'rgba(245,198,132,0.46)', aperture:'rgba(255,211,146,0.60)',
+    apertureFill:'rgba(15,9,5,0.66)', lines:'rgba(255,220,168,0.16)',
+    ribPalette:['#e49b52', '#7b5136', '#f2c06e', '#c4753c']
+  },
+  strombus: {
+    scale:1.08, turns:3.85, curl:1.14, tube:1.12, flare:1.45, ribs:0.92, spines:0.28, warp:0.5, bands:0.95,
+    fill:['rgba(255,177,132,0.40)', 'rgba(242,218,180,0.28)', 'rgba(255,212,185,0.34)'],
+    outline:'rgba(255,202,166,0.50)', aperture:'rgba(255,190,146,0.66)',
+    apertureFill:'rgba(20,10,8,0.64)', lines:'rgba(255,226,204,0.15)',
+    ribPalette:['#f6a36f', '#ffd2b1', '#bf6d52', '#f1c58f']
+  },
+  phi: {
+    scale:0.96, turns:5.05, curl:1.22, tube:0.82, flare:0.95, ribs:1.0, spines:0.18, warp:1.0, bands:1.1,
+    fill:['rgba(255,215,88,0.38)', 'rgba(58,134,255,0.24)', 'rgba(255,246,168,0.32)'],
+    outline:'rgba(255,225,105,0.52)', aperture:'rgba(255,236,145,0.66)',
+    apertureFill:'rgba(8,7,20,0.65)', lines:'rgba(255,239,150,0.16)',
+    ribPalette:['#ffd85a', '#3a86ff', '#fff1a5', '#d8a928']
+  }
+};
+
+function hexToRgba(hex, alpha) {
+  const clean = hex.replace('#', '');
+  const n = parseInt(clean.length === 3 ? clean.split('').map(ch => ch + ch).join('') : clean, 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
 
 // Relaciones de temperamento igual (semitonos desde la fundamental por número armónico)
 const ET_SEMITONES = [0,12,19.02,24,27.86,31.02,33.69,36,37.92,39.69,41.25,42.78,44.1,45.31,46.5,48];
@@ -591,7 +650,7 @@ class ShellVisualizer {
     this.canvas = canvas; this.c = canvas.getContext('2d');
     this.spiralB = 0.18; this.chambers = [];
     this.hoverChamber = -1;
-    this.view = 'spiral';     // 'spiral' | 'profile' | 'harmonic'
+    this.view = 'spiral';     // 'spiral' | 'harmonic' | 'shell'
     this.xyCursor = null;     // {x, y} cuando el pad XY está activo; si no, null
   }
   setXYCursor(x, y) { this.xyCursor = (x === null) ? null : { x, y }; }
@@ -607,15 +666,9 @@ class ShellVisualizer {
     this._drawXrayBackground(c);
     drawGrid(c, this.w, this.h);
     this.chambers = [];
-    if (this.view === 'harmonic') this._drawHarmonicView(c, amplitudes, activeSet, useJI);
-    else                          this._drawSpiralView(c, amplitudes, activeSet, useJI);
-    // El mese se dibuja en el ápice de la espiral (coincide con la caja centrada visualmente)
-    // para ESP; en ARM va al centro del canvas (el punto medio entre los dos focos).
-    if (this.view === 'harmonic') {
-      this._drawMese(c, activeSet, this.w * 0.5, this.h * 0.5);
-    } else if (this._spiralCenter) {
-      this._drawMese(c, activeSet, this._spiralCenter.cx, this._spiralCenter.cy);
-    }
+    if (this.view === 'harmonic')      this._drawHarmonicView(c, amplitudes, activeSet, useJI);
+    else if (this.view === 'shell')    this._drawShellObjectView(c, amplitudes, activeSet, useJI);
+    else                               this._drawSpiralView(c, amplitudes, activeSet, useJI);
     this._drawPath(c);
     this._drawXYCursor(c);
   }
@@ -701,8 +754,7 @@ class ShellVisualizer {
     const thetaAt = (k) => thMax * Math.pow(Math.max(0, (numH - k)) / numH, 0.55);
     const visT = Date.now() * 0.001;
     // Centrar horizontalmente por caja envolvente para que la espiral no derive hacia un lado;
-    // mantener el ápice (y por lo tanto el mese) en h/2 para alinearlo con el eje central
-    // del panel de ondas a la izquierda.
+    // mantener el ápice en h/2 para alinearlo con el eje central del panel de ondas a la izquierda.
     let minPx = Infinity, maxPx = -Infinity;
     for (let th = 0; th < thMax; th += 0.05) {
       const r = a * Math.exp(b * th);
@@ -714,7 +766,7 @@ class ShellVisualizer {
     const bboxCx = (minPx + maxPx) / 2;
     const cx = this.w * 0.5 - bboxCx;
     const cy = this.h * 0.5;
-    this._spiralCenter = { cx, cy };  // expuesto para dibujar el mese
+    this._spiralCenter = { cx, cy };
     // Columna de la espiral, más visible para que el estado vacío todavía se lea como caracola.
     c.beginPath(); c.strokeStyle = 'rgba(170,190,225,0.25)'; c.lineWidth = 1;
     for (let th = 0; th < thMax; th += 0.02) {
@@ -770,6 +822,383 @@ class ShellVisualizer {
     }
   }
 
+  // ── SHELL (perfil radiográfico generado por armónicos) ────────────────────
+  _drawShellObjectView(c, amplitudes, activeSet, useJI) {
+    const style = SHELL_STYLES[currentPreset] || SHELL_STYLES.empty;
+    const numH = amplitudes.length;
+    const palette = style.ribPalette || ['#f2d6a2', '#9a6846', '#fff2cf'];
+    const ampAt = (i) => activeSet.has(i) ? (amplitudes[i] || 0) : 0;
+    const sumRange = (from, to) => {
+      let sum = 0;
+      for (let i = from; i <= to; i++) sum += ampAt(i);
+      return sum / (to - from + 1);
+    };
+    const low = sumRange(0, 4);
+    const mid = sumRange(5, 10);
+    const high = sumRange(11, 15);
+    const energy = Math.min(1, amplitudes.reduce((s, _, i) => s + ampAt(i), 0) / 5);
+    let weightedAmp = 0, weightedIdx = 0;
+    for (let i = 0; i < numH; i++) {
+      const amp = ampAt(i);
+      weightedAmp += amp;
+      weightedIdx += amp * i;
+    }
+    const harmonicCenter = weightedAmp ? weightedIdx / (weightedAmp * (numH - 1)) : 0.32;
+    const lowMorph = 1 - harmonicCenter;
+    const highMorph = harmonicCenter;
+    const topPad = Math.min(92, Math.max(68, this.h * 0.18));
+    const bottomPad = 26;
+    const usableH = Math.max(120, this.h - topPad - bottomPad);
+    const W = Math.min(this.w * 0.74, usableH * 1.44) * style.scale * (0.94 + low * 0.08 + highMorph * 0.06);
+    const H = Math.min(usableH * 0.54, W * 0.43) * (0.92 + low * 0.11 + lowMorph * 0.05);
+    const cx = this.w * 0.50;
+    const cy = topPad + usableH * 0.54;
+    const visT = Date.now() * 0.001;
+    const clamp = (v, min = 0, max = 1) => Math.max(min, Math.min(max, v));
+
+    const harmonicFold = (t) => {
+      let sum = 0, weight = 0;
+      for (let i = 0; i < numH; i++) {
+        const amp = ampAt(i);
+        if (amp <= 0) continue;
+        const ratio = useJI ? (i + 1) : Math.pow(2, ET_SEMITONES[i] / 12);
+        sum += amp * Math.sin((i + 1) * Math.PI * t + visT * ratio * 0.18);
+        weight += amp;
+      }
+      return weight ? sum / weight : 0;
+    };
+
+    const centerAt = (t) => {
+      const u = clamp(t);
+      const arc = Math.sin((u * 0.92 + 0.08) * Math.PI) * H * 0.045;
+      const fold = harmonicFold(u) * H * (0.025 + high * 0.07) * (style.warp ?? 0.65);
+      const lateral = harmonicFold(u) * W * (0.006 + high * 0.020);
+      return { x: cx + W * 0.50 - W * u + lateral, y: cy + arc + fold, t: u };
+    };
+
+    const radiusAt = (t) => {
+      const u = clamp(t);
+      const shoulderCenter = 0.24 + (harmonicCenter - 0.34) * 0.055;
+      const bodyCenter = 0.43 + (harmonicCenter - 0.34) * 0.095;
+      const spireCenter = 0.72 + (harmonicCenter - 0.34) * 0.045;
+      const mouth = Math.exp(-Math.pow((u - 0.08) / 0.13, 2));
+      const shoulder = Math.exp(-Math.pow((u - shoulderCenter) / 0.18, 2));
+      const body = Math.exp(-Math.pow((u - bodyCenter) / 0.27, 2));
+      const spire = Math.exp(-Math.pow((u - spireCenter) / 0.20, 2));
+      const taper = 1 - (0.72 + highMorph * 0.10 - lowMorph * 0.05) * Math.pow(u, 1.55);
+      const fold = 1 + harmonicFold(u) * (0.06 + high * 0.13);
+      return Math.max(4, H * (0.030 + (0.20 + low * 0.12) * mouth + (0.21 + mid * 0.08) * shoulder
+        + (0.42 + lowMorph * 0.10) * body + (0.08 + highMorph * 0.12) * spire)
+        * taper * (1 + low * 0.14 + mid * 0.06) * fold);
+    };
+
+    const shoulderCrownAt = (t) => {
+      const zone = Math.exp(-Math.pow((t - 0.34) / 0.30, 2));
+      const bumps = Math.max(0, Math.sin((1 - t) * Math.PI * (5.6 + style.ribs * 1.35)));
+      return zone * bumps * (0.045 + style.spines * 0.045 + high * 0.030);
+    };
+    const topScaleAt = (t) => 0.72 + 0.20 * Math.exp(-Math.pow((t - 0.34) / 0.24, 2))
+      + shoulderCrownAt(t) + high * 0.035;
+    const bottomScaleAt = (t) => 0.92 + 0.25 * Math.exp(-Math.pow((t - 0.38) / 0.30, 2))
+      + 0.04 * Math.exp(-Math.pow((t - 0.16) / 0.15, 2));
+    const topPointAt = (t) => {
+      const p = centerAt(t), r = radiusAt(t);
+      return { x: p.x, y: p.y - r * topScaleAt(t), r, p };
+    };
+    const bottomPointAt = (t) => {
+      const p = centerAt(t), r = radiusAt(t);
+      return { x: p.x, y: p.y + r * bottomScaleAt(t), r, p };
+    };
+
+    const top = [], bottom = [];
+    const samples = 210;
+    for (let s = 0; s <= samples; s++) {
+      const t = s / samples;
+      top.push(topPointAt(t));
+      bottom.push(bottomPointAt(t));
+    }
+
+    const shellPath = new Path2D();
+    top.forEach((p, i) => i === 0 ? shellPath.moveTo(p.x, p.y) : shellPath.lineTo(p.x, p.y));
+    for (let i = bottom.length - 1; i >= 0; i--) shellPath.lineTo(bottom[i].x, bottom[i].y);
+    shellPath.closePath();
+
+    const centerRef = centerAt(0.50);
+    const lip = centerAt(0.055);
+    const lipR = radiusAt(0.10);
+    const apW = lipR * (0.44 + style.flare * 0.12 + low * 0.06);
+    const apH = lipR * (0.96 + style.flare * 0.14 + low * 0.06);
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    [...top, ...bottom].forEach(p => {
+      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+    });
+    minX = Math.min(minX, lip.x - W * 0.035 - apW * 1.16);
+    maxX = Math.max(maxX, lip.x - W * 0.035 + apW * 1.16);
+    minY = Math.min(minY, lip.y - apH * 1.16);
+    maxY = Math.max(maxY, lip.y + apH * 1.16);
+    const view = {
+      x: 24,
+      y: topPad + 8,
+      w: Math.max(80, this.w - 48),
+      h: Math.max(80, this.h - topPad - bottomPad - 12)
+    };
+    const fitScale = Math.min(1, view.w / Math.max(1, maxX - minX), view.h / Math.max(1, maxY - minY));
+    const fitX = view.x + (view.w - (maxX - minX) * fitScale) * 0.5 - minX * fitScale;
+    const fitY = view.y + (view.h - (maxY - minY) * fitScale) * 0.5 - minY * fitScale;
+    const fitPoint = (p) => ({ x: p.x * fitScale + fitX, y: p.y * fitScale + fitY });
+    const fitRadius = (r) => r * fitScale;
+    const centerFit = fitPoint(centerRef);
+    this._spiralCenter = { cx: centerFit.x, cy: centerFit.y };
+
+    c.save();
+    c.translate(fitX, fitY);
+    c.scale(fitScale, fitScale);
+
+    c.save();
+    c.shadowColor = hexToRgba(palette[0], 0.24);
+    c.shadowBlur = 24;
+    c.fillStyle = hexToRgba(palette[0], 0.10 + energy * 0.05);
+    c.fill(shellPath);
+    c.restore();
+
+    const xrayFill = c.createRadialGradient(cx - W * 0.20, cy - H * 0.12, H * 0.10, cx, cy, H * 0.88);
+    xrayFill.addColorStop(0, 'rgba(255,250,232,0.26)');
+    xrayFill.addColorStop(0.30, hexToRgba(palette[0], 0.20));
+    xrayFill.addColorStop(0.60, hexToRgba(palette[1] || palette[0], 0.14));
+    xrayFill.addColorStop(0.82, 'rgba(42,31,25,0.16)');
+    xrayFill.addColorStop(1, hexToRgba(palette[2] || palette[0], 0.18));
+    c.fillStyle = xrayFill;
+    c.fill(shellPath);
+
+    c.save();
+    c.clip(shellPath);
+
+    const density = c.createLinearGradient(cx - W * 0.52, cy - H * 0.50, cx + W * 0.50, cy + H * 0.44);
+    density.addColorStop(0, 'rgba(255,252,232,0.24)');
+    density.addColorStop(0.22, hexToRgba(palette[2] || palette[0], 0.14));
+    density.addColorStop(0.54, 'rgba(53,36,26,0.13)');
+    density.addColorStop(0.82, hexToRgba(palette[0], 0.11));
+    density.addColorStop(1, 'rgba(255,244,210,0.18)');
+    c.fillStyle = density;
+    c.fillRect(cx - W * 0.56, cy - H * 0.62, W * 1.12, H * 1.22);
+
+    const bandCount = Math.max(9, Math.round(11 + style.bands * 7 + mid * 5));
+    for (let j = 0; j < bandCount; j++) {
+      const t = 0.08 + (j / Math.max(1, bandCount - 1)) * 0.84;
+      const p = centerAt(t);
+      const r = radiusAt(t);
+      const amp = ampAt(j % numH);
+      const topY = p.y - r * (topScaleAt(t) + 0.02);
+      const botY = p.y + r * (bottomScaleAt(t) + 0.02);
+      const color = palette[(j + Math.floor(t * 6)) % palette.length];
+      const bend = harmonicFold(t) * r * 0.18;
+      c.beginPath();
+      c.moveTo(p.x + bend + r * 0.03, topY);
+      c.bezierCurveTo(
+        p.x + bend + r * 0.22, p.y - r * 0.28,
+        p.x - bend - r * 0.18, p.y + r * 0.30,
+        p.x - bend, botY
+      );
+      c.strokeStyle = hexToRgba(color, 0.09 + amp * 0.18 + energy * 0.04);
+      c.lineWidth = 2.2 + amp * 5.0;
+      c.stroke();
+      c.beginPath();
+      c.moveTo(p.x + bend + r * 0.07, topY + r * 0.08);
+      c.bezierCurveTo(p.x + r * 0.15, p.y - r * 0.10, p.x - r * 0.11, p.y + r * 0.16, p.x - bend + r * 0.02, botY - r * 0.08);
+      c.strokeStyle = 'rgba(255,246,218,0.055)';
+      c.lineWidth = 0.8;
+      c.stroke();
+    }
+
+    // Cámaras y estrías radiográficas: no son color de superficie, son densidad interna.
+    const ribCount = Math.max(12, Math.round(16 + style.ribs * 6 + mid * 8));
+    for (let j = 0; j < ribCount; j++) {
+      const t = 0.07 + (j / (ribCount - 1)) * 0.86;
+      const p = centerAt(t);
+      const r = radiusAt(t);
+      const amp = ampAt(j % numH);
+      const topY = p.y - r * (topScaleAt(t) + 0.03);
+      const botY = p.y + r * (bottomScaleAt(t) + 0.02);
+      c.beginPath();
+      c.moveTo(p.x + r * 0.02, topY);
+      c.bezierCurveTo(
+        p.x + r * (0.28 + amp * 0.10), p.y - r * 0.32,
+        p.x - r * (0.22 + mid * 0.08), p.y + r * 0.30,
+        p.x - r * 0.03, botY
+      );
+      c.strokeStyle = hexToRgba(palette[j % palette.length], 0.08 + amp * 0.19 + energy * 0.03);
+      c.lineWidth = 0.8 + amp * 1.8;
+      c.stroke();
+    }
+
+    // Contornos longitudinales, como capas de crecimiento visibles en una placa.
+    for (let lane = -0.76; lane <= 0.76; lane += 0.16) {
+      c.beginPath();
+      for (let s = 4; s <= samples - 4; s++) {
+        const t = s / samples;
+        const p = centerAt(t);
+        const r = radiusAt(t);
+        const wave = harmonicFold(t) * r * 0.055;
+        const scale = lane < 0 ? topScaleAt(t) : bottomScaleAt(t);
+        const y = p.y + lane * r * scale + wave;
+        s === 4 ? c.moveTo(p.x, y) : c.lineTo(p.x, y);
+      }
+      c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.075);
+      c.lineWidth = 0.75;
+      c.stroke();
+    }
+
+    // Anillos finos en la espira cónica, para que la punta lea más como caracola real.
+    for (let j = 0; j < 10; j++) {
+      const t = 0.55 + j * 0.041;
+      const p = centerAt(t);
+      const r = radiusAt(t);
+      c.beginPath();
+      c.ellipse(p.x, p.y, r * (0.55 - j * 0.025), r * (0.22 - j * 0.010), 0.04, 0, Math.PI * 2);
+      c.strokeStyle = hexToRgba(palette[(j + 2) % palette.length], 0.050 + high * 0.035);
+      c.lineWidth = 0.9;
+      c.stroke();
+    }
+
+    // Onda armónica interna, inspirada en la referencia de serie armónica.
+    const active = [...activeSet].sort((a, b) => a - b).slice(0, 11);
+    active.forEach((i) => {
+      const amp = ampAt(i);
+      if (amp < 0.035) return;
+      const ratio = useJI ? (i + 1) : Math.pow(2, ET_SEMITONES[i] / 12);
+      c.beginPath();
+      for (let s = 0; s <= samples; s++) {
+        const t = s / samples;
+        const p = centerAt(t);
+        const r = radiusAt(t);
+        const wave = Math.sin(t * Math.PI * (i + 1) * 2 + visT * ratio * 0.48);
+        const envelope = Math.sin(Math.PI * t);
+        const y = p.y + wave * r * (0.16 + amp * 0.34) * envelope;
+        const x = p.x + harmonicFold(t) * r * 0.035;
+        s === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+      }
+      const waveColor = HARMONICS[i]?.color || palette[2] || '#fff2cf';
+      c.shadowColor = hexToRgba(waveColor, 0.22);
+      c.shadowBlur = 8;
+      c.strokeStyle = hexToRgba(waveColor, Math.min(0.42, 0.11 + amp * 0.28));
+      c.lineWidth = 0.65 + amp * 1.2;
+      c.stroke();
+      c.shadowBlur = 0;
+    });
+
+    // Espira interna hacia la punta.
+    const spireCenter = centerAt(0.80);
+    for (let j = 0; j < 7; j++) {
+      const k = j / 6;
+      c.beginPath();
+      c.ellipse(
+        spireCenter.x + W * (0.025 + k * 0.040),
+        spireCenter.y - H * (0.012 + k * 0.010),
+        H * (0.18 - k * 0.018),
+        H * (0.090 - k * 0.010),
+        -0.05,
+        0,
+        Math.PI * 2
+      );
+      c.strokeStyle = `rgba(230,246,255,${0.12 - k * 0.009})`;
+      c.lineWidth = 1;
+      c.stroke();
+    }
+
+    // Textura de placa: pequeñas vetas sin ruido aleatorio.
+    for (let k = 0; k < 90; k++) {
+      const t = ((k * 37) % 100) / 100;
+      if (t < 0.05 || t > 0.96) continue;
+      const p = centerAt(t);
+      const r = radiusAt(t);
+      const lane = (((k * 19) % 100) / 100 - 0.5) * 1.5;
+      const y = p.y + lane * r * 0.72;
+      const x = p.x + (((k * 13) % 100) / 100 - 0.5) * r * 0.20;
+      c.beginPath();
+      c.moveTo(x, y);
+      c.lineTo(x + 4 + (k % 7), y - 1 + (k % 3));
+      c.strokeStyle = 'rgba(245,252,255,0.08)';
+      c.lineWidth = 0.45;
+      c.stroke();
+    }
+    c.restore();
+
+    // Boca: labio translúcido y cavidad oscura como en una radiografía coloreada.
+    c.save();
+    c.translate(lip.x - W * 0.035, lip.y + lipR * 0.02);
+    c.rotate(-0.10);
+    c.shadowColor = hexToRgba(palette[2] || palette[0], 0.34);
+    c.shadowBlur = 14;
+    const outerMouth = new Path2D();
+    outerMouth.moveTo(-apW * 0.34, -apH * 0.98);
+    outerMouth.bezierCurveTo(apW * 0.44, -apH * 1.06, apW * 1.06, -apH * 0.54, apW * 0.94, apH * 0.05);
+    outerMouth.bezierCurveTo(apW * 0.80, apH * 0.82, apW * 0.20, apH * 1.06, -apW * 0.40, apH * 0.92);
+    outerMouth.bezierCurveTo(-apW * 0.86, apH * 0.66, -apW * 0.92, -apH * 0.56, -apW * 0.34, -apH * 0.98);
+    outerMouth.closePath();
+    c.fillStyle = hexToRgba(palette[0], 0.24 + low * 0.06);
+    c.fill(outerMouth);
+    c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.50);
+    c.lineWidth = 2.2 + low * 2.8;
+    c.stroke(outerMouth);
+    c.shadowBlur = 0;
+    const inner = c.createRadialGradient(-apW * 0.22, -apH * 0.04, apW * 0.08, 0, 0, apH);
+    inner.addColorStop(0, hexToRgba(palette[2] || palette[0], 0.16));
+    inner.addColorStop(0.34, 'rgba(45,31,22,0.40)');
+    inner.addColorStop(1, 'rgba(3,4,9,0.72)');
+    const innerMouth = new Path2D();
+    innerMouth.moveTo(-apW * 0.28, -apH * 0.68);
+    innerMouth.bezierCurveTo(apW * 0.36, -apH * 0.77, apW * 0.66, -apH * 0.28, apW * 0.54, apH * 0.18);
+    innerMouth.bezierCurveTo(apW * 0.39, apH * 0.68, -apW * 0.10, apH * 0.74, -apW * 0.42, apH * 0.43);
+    innerMouth.bezierCurveTo(-apW * 0.68, apH * 0.10, -apW * 0.66, -apH * 0.46, -apW * 0.28, -apH * 0.68);
+    innerMouth.closePath();
+    c.fillStyle = inner;
+    c.fill(innerMouth);
+    c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.22);
+    c.lineWidth = 1.1;
+    c.stroke(innerMouth);
+    c.beginPath();
+    c.moveTo(-apW * 0.24, -apH * 0.86);
+    c.bezierCurveTo(apW * 0.48, -apH * 0.72, apW * 0.76, -apH * 0.18, apW * 0.70, apH * 0.22);
+    c.strokeStyle = 'rgba(255,248,224,0.16)';
+    c.lineWidth = 1.2;
+    c.stroke();
+    c.restore();
+
+    // Nudos suaves del hombro, visibles como densidades, no como púas decorativas.
+    if (style.spines > 0.05) {
+      const spineCount = Math.round(3 + style.spines * 4 + high * 3);
+      for (let j = 0; j < spineCount; j++) {
+        const t = 0.18 + (j / Math.max(1, spineCount - 1)) * 0.46;
+        const tp = topPointAt(t);
+        const amp = ampAt((j * 2) % numH);
+        c.beginPath();
+        c.ellipse(tp.x, tp.y + tp.r * 0.02, tp.r * (0.18 + amp * 0.10), tp.r * (0.08 + amp * 0.05), -0.16, 0, Math.PI * 2);
+        c.fillStyle = hexToRgba(palette[(j + 1) % palette.length], 0.08 + amp * 0.10);
+        c.fill();
+        c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.10 + amp * 0.12);
+        c.lineWidth = 0.8;
+        c.stroke();
+      }
+    }
+
+    c.shadowColor = hexToRgba(palette[2] || palette[0], 0.34);
+    c.shadowBlur = 10;
+    c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.38);
+    c.lineWidth = 1.4;
+    c.stroke(shellPath);
+    c.shadowBlur = 0;
+    c.restore();
+
+    for (let i = 0; i < numH; i++) {
+      const t = 0.08 + Math.pow((i + 0.5) / numH, 0.92) * 0.84;
+      const p = centerAt(t);
+      const r = radiusAt(t);
+      const fp = fitPoint(p);
+      this.chambers.push({ idx: i, x: fp.x, y: fp.y, r: Math.max(12, fitRadius(r * 0.58)), thStart: 0, thEnd: 0 });
+    }
+  }
+
   // ── ARMÓNICOS (ondas estacionarias, imagen de referencia Bernstein/Petersen) ──
   // Cada armónico activo Hn se dibuja como onda estacionaria con n medias longitudes de onda
   // entre dos focos fijos. y(x,t) = amp · sin(n·π·(x+L)/(2L)) · cos(2π·f_vis·t).
@@ -822,14 +1251,6 @@ class ShellVisualizer {
     }
   }
 
-  _drawMese(c, activeSet, cx, cy) {
-    const visible = activeSet.size > 2 ? 0.7 : 0.25;
-    c.beginPath(); c.arc(cx, cy, 4, 0, Math.PI * 2);
-    c.fillStyle = `rgba(255,215,0,${visible})`; c.fill();
-    c.font = '9px "JetBrains Mono"'; c.fillStyle = `rgba(255,215,0,${visible * 0.7})`;
-    c.textAlign = 'center'; c.fillText('MESE', cx, cy + 18);
-  }
-
   hitTest(mx, my) {
     for (const ch of this.chambers) {
       const dx = mx - ch.x, dy = my - ch.y;
@@ -859,7 +1280,7 @@ class WaveDisplay {
     drawGrid(c, this.w, this.h);
     const active = [...activeSet].sort((a, b) => a - b);
     if (active.length === 0) {
-      // Dibujar solo la línea del mese.
+      // Dibujar solo la línea central.
       c.strokeStyle = 'rgba(100,120,200,0.15)'; c.lineWidth = 1;
       c.setLineDash([4, 4]);
       c.beginPath(); c.moveTo(0, this.h / 2); c.lineTo(this.w, this.h / 2); c.stroke();
@@ -880,7 +1301,7 @@ class WaveDisplay {
       const color = HARMONICS[idx]?.color || '#666';
       const freq = idx + 1;
       const omega = 2 * Math.PI * 0.25 * freq;
-      // Línea del mese
+      // Línea central
       c.strokeStyle = 'rgba(100,120,200,0.08)'; c.lineWidth = 0.5;
       c.beginPath(); c.moveTo(30, cy); c.lineTo(this.w - 10, cy); c.stroke();
       // Etiqueta
@@ -906,7 +1327,7 @@ class WaveDisplay {
     // Más ciclos para que las relaciones enteras de JI converjan visualmente mientras ET deriva.
     const cycles = 4;
     const phaseScale = (Math.PI * 2 * cycles) / waveW;
-    // Línea del mese
+    // Línea central
     c.strokeStyle = 'rgba(100,120,200,0.15)'; c.lineWidth = 0.5;
     c.beginPath(); c.moveTo(20, cy); c.lineTo(this.w - 20, cy); c.stroke();
     // Precalcular relaciones una vez para dibujar y analizar con los mismos datos.
@@ -928,31 +1349,6 @@ class WaveDisplay {
       }
       c.stroke(); c.globalAlpha = 1;
     });
-    // Mese: buscar la x donde todas las ondas activas están más cerca de cero (punto real de convergencia).
-    // En JI, con relaciones enteras, aparece periódicamente un cruce cercano a cero;
-    // en ET, las relaciones irracionales impiden una alineación perfecta y el puntaje nunca llega a 0.
-    let minScore = Infinity, bestX = waveW / 2;
-    const totalEnergy = norms.reduce((s, n) => s + n, 0);
-    if (active.length > 1 && totalEnergy > 0) {
-      for (let x = 0; x <= waveW; x += 4) {
-        let score = 0;
-        for (let k = 0; k < active.length; k++) {
-          if (norms[k] < 0.01) continue;
-          const phase = x * phaseScale * ratios[k] + visT * omegas[k];
-          score += Math.abs(Math.sin(phase)) * norms[k];
-        }
-        if (score < minScore) { minScore = score; bestX = x; }
-      }
-    }
-    // Coherencia: 1 = convergencia perfecta (JI), <1 = dispersión (ET)
-    const coherence = (active.length > 1 && totalEnergy > 0)
-      ? Math.max(0, 1 - minScore / (totalEnergy * 0.35)) : 0;
-    const meseX = 20 + bestX;
-    const visible = active.length > 1 ? (0.25 + coherence * 0.7) : 0.2;
-    c.beginPath(); c.arc(meseX, cy, 3, 0, Math.PI * 2);
-    c.fillStyle = `rgba(255,215,0,${visible})`; c.fill();
-    c.font = '9px "JetBrains Mono"'; c.fillStyle = `rgba(255,215,0,${visible})`;
-    c.textAlign = 'center'; c.fillText('MESE', meseX, cy + 14);
   }
 }
 
@@ -988,8 +1384,8 @@ let lastShellPos = null;  // última posición del puntero sobre el canvas de la
 let spaceHeld = false;    // indica si la barra espaciadora está presionada
 let padActive = false;    // indica si el pad XY está siendo usado en este momento
 
-// True when *something* is live-pressed (space or pad). silenceAll() should
-// never run while this is true, otherwise we'd kill an active press.
+// Indica si hay una presión activa (barra espaciadora o pad). silenceAll() no debe
+// correr mientras esto sea true, porque cortaría una interacción en curso.
 function isLivePressing() { return spaceHeld || padActive; }
 
 function stopPathPlayback() {
@@ -1010,8 +1406,8 @@ function silenceAll() {
   syncSlidersFromAmps();
 }
 
-// Path waypoints are stored as normalized coords {nx, ny} ∈ [0,1] relative to
-// the shell canvas, so that fullscreen / resize doesn't shift their position.
+// Los puntos del path se guardan como coordenadas normalizadas {nx, ny} ∈ [0,1]
+// relativas al canvas de la caracola, así pantalla completa y resize no los desplazan.
 function findPathPointAt(x, y, hit = 20) {
   const w = shellViz.w || 1, h = shellViz.h || 1;
   for (let i = 0; i < pathPoints.length; i++) {
@@ -1106,7 +1502,7 @@ function addHarmonic() {
   activeHarmonics.add(idx);
   audio.init().then(() => audioSet(idx, amplitudes[idx]));
   const row = document.getElementById('slider-row');
-  row.insertBefore(createSlider(idx), document.getElementById('add-btn'));
+  row.appendChild(createSlider(idx));
   if (nextHarmonic >= 16) document.getElementById('add-btn').style.display = 'none';
 }
 
@@ -1132,7 +1528,7 @@ function loadPreset(name) {
       // deslizadores/visuales y queda en silencio hasta presionar el pad, Espacio o la ruta.
       audioSet(i, holdOn ? amp : 0);
       nextHarmonic = i + 1;
-      row.insertBefore(createSlider(i), document.getElementById('add-btn'));
+      row.appendChild(createSlider(i));
     });
     if (nextHarmonic >= 16) document.getElementById('add-btn').style.display = 'none';
   });
@@ -1145,7 +1541,7 @@ function syncSlidersFromAmps() {
     const slider = document.querySelector(`input[data-idx="${i}"]`);
     const amp = amplitudes[i] || 0;
     if (!slider) {
-      row.insertBefore(createSlider(i), document.getElementById('add-btn'));
+      row.appendChild(createSlider(i));
     } else {
       slider.value = Math.round(amp * 100);
       const valEl = document.querySelector(`[data-val="${i}"]`);
