@@ -856,6 +856,11 @@ class ShellVisualizer {
     const visT = Date.now() * 0.001;
     const clamp = (v, min = 0, max = 1) => Math.max(min, Math.min(max, v));
 
+    // Función de ruido pseudo-orgánico para imperfecciones en el calcio
+    const organicNoise = (t, freq, amp) => {
+      return (Math.sin(t * freq) * 0.5 + Math.sin(t * freq * 1.618) * 0.3 + Math.sin(t * freq * 2.718) * 0.2) * amp;
+    };
+
     const harmonicFold = (t) => {
       let sum = 0, weight = 0;
       for (let i = 0; i < numH; i++) {
@@ -894,13 +899,23 @@ class ShellVisualizer {
 
     const shoulderCrownAt = (t) => {
       const zone = Math.exp(-Math.pow((t - 0.34) / 0.30, 2));
-      const bumps = Math.max(0, Math.sin((1 - t) * Math.PI * (5.6 + style.ribs * 1.35)));
-      return zone * bumps * (0.045 + style.spines * 0.045 + high * 0.030);
+      // Espinas reales: más afiladas usando Math.pow
+      const bumps = Math.pow(Math.max(0, Math.sin((1 - t) * Math.PI * (5.6 + style.ribs * 1.35))), 3.5);
+      return zone * bumps * (0.15 + style.spines * 0.3 + high * 0.050);
     };
-    const topScaleAt = (t) => 0.72 + 0.20 * Math.exp(-Math.pow((t - 0.34) / 0.24, 2))
-      + shoulderCrownAt(t) + high * 0.035;
-    const bottomScaleAt = (t) => 0.92 + 0.25 * Math.exp(-Math.pow((t - 0.38) / 0.30, 2))
-      + 0.04 * Math.exp(-Math.pow((t - 0.16) / 0.15, 2));
+
+    const topScaleAt = (t) => {
+      const noise = organicNoise(t, 60, 0.015);
+      return 0.72 + 0.20 * Math.exp(-Math.pow((t - 0.34) / 0.24, 2)) + shoulderCrownAt(t) + high * 0.035 + noise;
+    };
+
+    const bottomScaleAt = (t) => {
+      const noise = organicNoise(t, 55, 0.012);
+      // Las espinas también afectan ligeramente la parte inferior si la caracola tiene muchas espinas
+      const lowerBumps = (style.spines > 0.5) ? shoulderCrownAt(t) * 0.3 : 0;
+      return 0.92 + 0.25 * Math.exp(-Math.pow((t - 0.38) / 0.30, 2)) + 0.04 * Math.exp(-Math.pow((t - 0.16) / 0.15, 2)) + lowerBumps + noise;
+    };
+
     const topPointAt = (t) => {
       const p = centerAt(t), r = radiusAt(t);
       return { x: p.x, y: p.y - r * topScaleAt(t), r, p };
@@ -911,7 +926,7 @@ class ShellVisualizer {
     };
 
     const top = [], bottom = [];
-    const samples = 210;
+    const samples = 240;
     for (let s = 0; s <= samples; s++) {
       const t = s / samples;
       top.push(topPointAt(t));
@@ -933,6 +948,10 @@ class ShellVisualizer {
       minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
       minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
     });
+    // Considerar espinas extra largas en el cálculo de la caja
+    if (style.spines > 0.5) {
+      minY -= H * 0.2; maxY += H * 0.2;
+    }
     minX = Math.min(minX, lip.x - W * 0.035 - apW * 1.16);
     maxX = Math.max(maxX, lip.x - W * 0.035 + apW * 1.16);
     minY = Math.min(minY, lip.y - apH * 1.16);
@@ -956,33 +975,45 @@ class ShellVisualizer {
     c.scale(fitScale, fitScale);
 
     c.save();
-    c.shadowColor = hexToRgba(palette[0], 0.24);
-    c.shadowBlur = 24;
-    c.fillStyle = hexToRgba(palette[0], 0.10 + energy * 0.05);
+    // Sombra proyectada principal
+    c.shadowColor = hexToRgba(palette[0], 0.35);
+    c.shadowBlur = 30;
+    c.shadowOffsetY = 15;
+    c.fillStyle = hexToRgba(palette[0], 0.15 + energy * 0.05);
     c.fill(shellPath);
     c.restore();
 
-    const xrayFill = c.createRadialGradient(cx - W * 0.20, cy - H * 0.12, H * 0.10, cx, cy, H * 0.88);
-    xrayFill.addColorStop(0, 'rgba(255,250,232,0.26)');
-    xrayFill.addColorStop(0.30, hexToRgba(palette[0], 0.20));
-    xrayFill.addColorStop(0.60, hexToRgba(palette[1] || palette[0], 0.14));
-    xrayFill.addColorStop(0.82, 'rgba(42,31,25,0.16)');
-    xrayFill.addColorStop(1, hexToRgba(palette[2] || palette[0], 0.18));
+    // Relleno base más orgánico
+    const baseGrad = c.createLinearGradient(cx - W * 0.2, cy - H * 0.8, cx + W * 0.2, cy + H * 0.8);
+    baseGrad.addColorStop(0, hexToRgba(palette[2] || palette[0], 0.25));
+    baseGrad.addColorStop(0.5, hexToRgba(palette[0], 0.20));
+    baseGrad.addColorStop(1, hexToRgba(palette[1] || palette[0], 0.15));
+    c.fillStyle = baseGrad;
+    c.fill(shellPath);
+
+    // Sombreado interno volumétrico
+    const xrayFill = c.createRadialGradient(cx - W * 0.15, cy - H * 0.2, H * 0.05, cx, cy, H * 0.95);
+    xrayFill.addColorStop(0, 'rgba(255,255,255,0.18)');
+    xrayFill.addColorStop(0.35, hexToRgba(palette[0], 0.22));
+    xrayFill.addColorStop(0.70, 'rgba(30,20,15,0.20)');
+    xrayFill.addColorStop(1, hexToRgba(palette[2] || palette[0], 0.25));
     c.fillStyle = xrayFill;
     c.fill(shellPath);
 
     c.save();
     c.clip(shellPath);
 
-    const density = c.createLinearGradient(cx - W * 0.52, cy - H * 0.50, cx + W * 0.50, cy + H * 0.44);
-    density.addColorStop(0, 'rgba(255,252,232,0.24)');
-    density.addColorStop(0.22, hexToRgba(palette[2] || palette[0], 0.14));
-    density.addColorStop(0.54, 'rgba(53,36,26,0.13)');
-    density.addColorStop(0.82, hexToRgba(palette[0], 0.11));
-    density.addColorStop(1, 'rgba(255,244,210,0.18)');
-    c.fillStyle = density;
-    c.fillRect(cx - W * 0.56, cy - H * 0.62, W * 1.12, H * 1.22);
+    // Brillo especular a lo largo del cuerpo (simula curva convexa)
+    const specular = c.createLinearGradient(cx - W * 0.3, cy - H * 0.6, cx + W * 0.3, cy + H * 0.6);
+    specular.addColorStop(0, 'rgba(255,255,255,0.0)');
+    specular.addColorStop(0.4, 'rgba(255,255,255,0.12)');
+    specular.addColorStop(0.45, 'rgba(255,255,255,0.25)');
+    specular.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+    specular.addColorStop(1, 'rgba(255,255,255,0.0)');
+    c.fillStyle = specular;
+    c.fillRect(cx - W, cy - H, W * 2, H * 2);
 
+    // Bandas de color (líneas de crecimiento orgánicas)
     const bandCount = Math.max(9, Math.round(11 + style.bands * 7 + mid * 5));
     for (let j = 0; j < bandCount; j++) {
       const t = 0.08 + (j / Math.max(1, bandCount - 1)) * 0.84;
@@ -992,76 +1023,75 @@ class ShellVisualizer {
       const topY = p.y - r * (topScaleAt(t) + 0.02);
       const botY = p.y + r * (bottomScaleAt(t) + 0.02);
       const color = palette[(j + Math.floor(t * 6)) % palette.length];
-      const bend = harmonicFold(t) * r * 0.18;
+      const bend = harmonicFold(t) * r * 0.18 + organicNoise(t, 20, r * 0.05);
+      
       c.beginPath();
       c.moveTo(p.x + bend + r * 0.03, topY);
       c.bezierCurveTo(
-        p.x + bend + r * 0.22, p.y - r * 0.28,
-        p.x - bend - r * 0.18, p.y + r * 0.30,
+        p.x + bend + r * 0.25, p.y - r * 0.3,
+        p.x - bend - r * 0.2, p.y + r * 0.35,
         p.x - bend, botY
       );
-      c.strokeStyle = hexToRgba(color, 0.09 + amp * 0.18 + energy * 0.04);
-      c.lineWidth = 2.2 + amp * 5.0;
-      c.stroke();
-      c.beginPath();
-      c.moveTo(p.x + bend + r * 0.07, topY + r * 0.08);
-      c.bezierCurveTo(p.x + r * 0.15, p.y - r * 0.10, p.x - r * 0.11, p.y + r * 0.16, p.x - bend + r * 0.02, botY - r * 0.08);
-      c.strokeStyle = 'rgba(255,246,218,0.055)';
-      c.lineWidth = 0.8;
+      c.strokeStyle = hexToRgba(color, 0.12 + amp * 0.2 + energy * 0.05);
+      c.lineWidth = 2.5 + amp * 6.0;
       c.stroke();
     }
 
-    // Cámaras y estrías radiográficas: no son color de superficie, son densidad interna.
-    const ribCount = Math.max(12, Math.round(16 + style.ribs * 6 + mid * 8));
+    // Líneas finas de crecimiento topológico
+    const ribCount = Math.max(20, Math.round(30 + style.ribs * 15 + mid * 10));
     for (let j = 0; j < ribCount; j++) {
-      const t = 0.07 + (j / (ribCount - 1)) * 0.86;
+      const t = 0.05 + (j / (ribCount - 1)) * 0.9;
       const p = centerAt(t);
       const r = radiusAt(t);
       const amp = ampAt(j % numH);
       const topY = p.y - r * (topScaleAt(t) + 0.03);
       const botY = p.y + r * (bottomScaleAt(t) + 0.02);
+      
+      const waveOffset = organicNoise(t, 100, r * 0.02);
       c.beginPath();
-      c.moveTo(p.x + r * 0.02, topY);
+      c.moveTo(p.x + waveOffset, topY);
       c.bezierCurveTo(
-        p.x + r * (0.28 + amp * 0.10), p.y - r * 0.32,
-        p.x - r * (0.22 + mid * 0.08), p.y + r * 0.30,
-        p.x - r * 0.03, botY
+        p.x + r * (0.3 + amp * 0.12) + waveOffset, p.y - r * 0.35,
+        p.x - r * (0.25 + mid * 0.1) - waveOffset, p.y + r * 0.35,
+        p.x - waveOffset, botY
       );
-      c.strokeStyle = hexToRgba(palette[j % palette.length], 0.08 + amp * 0.19 + energy * 0.03);
-      c.lineWidth = 0.8 + amp * 1.8;
+      
+      c.strokeStyle = hexToRgba(palette[j % palette.length], 0.15 + amp * 0.25 + energy * 0.05);
+      c.lineWidth = 0.6 + amp * 2.0;
       c.stroke();
     }
 
-    // Contornos longitudinales, como capas de crecimiento visibles en una placa.
-    for (let lane = -0.76; lane <= 0.76; lane += 0.16) {
+    // Contornos longitudinales orgánicos
+    for (let lane = -0.75; lane <= 0.75; lane += 0.15) {
       c.beginPath();
       for (let s = 4; s <= samples - 4; s++) {
         const t = s / samples;
         const p = centerAt(t);
         const r = radiusAt(t);
-        const wave = harmonicFold(t) * r * 0.055;
+        const wave = harmonicFold(t) * r * 0.055 + organicNoise(t + lane, 40, r * 0.03);
         const scale = lane < 0 ? topScaleAt(t) : bottomScaleAt(t);
         const y = p.y + lane * r * scale + wave;
         s === 4 ? c.moveTo(p.x, y) : c.lineTo(p.x, y);
       }
-      c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.075);
-      c.lineWidth = 0.75;
+      c.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      c.lineWidth = 0.8;
       c.stroke();
     }
 
-    // Anillos finos en la espira cónica, para que la punta lea más como caracola real.
-    for (let j = 0; j < 10; j++) {
-      const t = 0.55 + j * 0.041;
+    // Anillos cónicos en la espira
+    for (let j = 0; j < 12; j++) {
+      const t = 0.55 + j * 0.035;
       const p = centerAt(t);
       const r = radiusAt(t);
       c.beginPath();
-      c.ellipse(p.x, p.y, r * (0.55 - j * 0.025), r * (0.22 - j * 0.010), 0.04, 0, Math.PI * 2);
-      c.strokeStyle = hexToRgba(palette[(j + 2) % palette.length], 0.050 + high * 0.035);
-      c.lineWidth = 0.9;
+      const nOffset = organicNoise(t, 50, r * 0.05);
+      c.ellipse(p.x + nOffset, p.y, r * (0.55 - j * 0.025), r * (0.22 - j * 0.010), 0.04 + nOffset * 0.01, 0, Math.PI * 2);
+      c.strokeStyle = hexToRgba(palette[(j + 2) % palette.length], 0.08 + high * 0.04);
+      c.lineWidth = 1.0;
       c.stroke();
     }
 
-    // Onda armónica interna, inspirada en la referencia de serie armónica.
+    // Onda armónica interna
     const active = [...activeSet].sort((a, b) => a - b).slice(0, 11);
     active.forEach((i) => {
       const amp = ampAt(i);
@@ -1079,113 +1109,112 @@ class ShellVisualizer {
         s === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
       }
       const waveColor = HARMONICS[i]?.color || palette[2] || '#fff2cf';
-      c.shadowColor = hexToRgba(waveColor, 0.22);
-      c.shadowBlur = 8;
-      c.strokeStyle = hexToRgba(waveColor, Math.min(0.42, 0.11 + amp * 0.28));
-      c.lineWidth = 0.65 + amp * 1.2;
+      c.shadowColor = hexToRgba(waveColor, 0.3);
+      c.shadowBlur = 10;
+      c.strokeStyle = hexToRgba(waveColor, Math.min(0.5, 0.15 + amp * 0.3));
+      c.lineWidth = 0.8 + amp * 1.5;
       c.stroke();
       c.shadowBlur = 0;
     });
 
-    // Espira interna hacia la punta.
-    const spireCenter = centerAt(0.80);
-    for (let j = 0; j < 7; j++) {
-      const k = j / 6;
-      c.beginPath();
-      c.ellipse(
-        spireCenter.x + W * (0.025 + k * 0.040),
-        spireCenter.y - H * (0.012 + k * 0.010),
-        H * (0.18 - k * 0.018),
-        H * (0.090 - k * 0.010),
-        -0.05,
-        0,
-        Math.PI * 2
-      );
-      c.strokeStyle = `rgba(230,246,255,${0.12 - k * 0.009})`;
-      c.lineWidth = 1;
-      c.stroke();
-    }
-
-    // Textura de placa: pequeñas vetas sin ruido aleatorio.
-    for (let k = 0; k < 90; k++) {
-      const t = ((k * 37) % 100) / 100;
-      if (t < 0.05 || t > 0.96) continue;
-      const p = centerAt(t);
-      const r = radiusAt(t);
-      const lane = (((k * 19) % 100) / 100 - 0.5) * 1.5;
-      const y = p.y + lane * r * 0.72;
-      const x = p.x + (((k * 13) % 100) / 100 - 0.5) * r * 0.20;
-      c.beginPath();
-      c.moveTo(x, y);
-      c.lineTo(x + 4 + (k % 7), y - 1 + (k % 3));
-      c.strokeStyle = 'rgba(245,252,255,0.08)';
-      c.lineWidth = 0.45;
-      c.stroke();
-    }
     c.restore();
 
-    // Boca: labio translúcido y cavidad oscura como en una radiografía coloreada.
-    c.save();
-    c.translate(lip.x - W * 0.035, lip.y + lipR * 0.02);
-    c.rotate(-0.10);
-    c.shadowColor = hexToRgba(palette[2] || palette[0], 0.34);
-    c.shadowBlur = 14;
-    const outerMouth = new Path2D();
-    outerMouth.moveTo(-apW * 0.34, -apH * 0.98);
-    outerMouth.bezierCurveTo(apW * 0.44, -apH * 1.06, apW * 1.06, -apH * 0.54, apW * 0.94, apH * 0.05);
-    outerMouth.bezierCurveTo(apW * 0.80, apH * 0.82, apW * 0.20, apH * 1.06, -apW * 0.40, apH * 0.92);
-    outerMouth.bezierCurveTo(-apW * 0.86, apH * 0.66, -apW * 0.92, -apH * 0.56, -apW * 0.34, -apH * 0.98);
-    outerMouth.closePath();
-    c.fillStyle = hexToRgba(palette[0], 0.24 + low * 0.06);
-    c.fill(outerMouth);
-    c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.50);
-    c.lineWidth = 2.2 + low * 2.8;
-    c.stroke(outerMouth);
-    c.shadowBlur = 0;
-    const inner = c.createRadialGradient(-apW * 0.22, -apH * 0.04, apW * 0.08, 0, 0, apH);
-    inner.addColorStop(0, hexToRgba(palette[2] || palette[0], 0.16));
-    inner.addColorStop(0.34, 'rgba(45,31,22,0.40)');
-    inner.addColorStop(1, 'rgba(3,4,9,0.72)');
-    const innerMouth = new Path2D();
-    innerMouth.moveTo(-apW * 0.28, -apH * 0.68);
-    innerMouth.bezierCurveTo(apW * 0.36, -apH * 0.77, apW * 0.66, -apH * 0.28, apW * 0.54, apH * 0.18);
-    innerMouth.bezierCurveTo(apW * 0.39, apH * 0.68, -apW * 0.10, apH * 0.74, -apW * 0.42, apH * 0.43);
-    innerMouth.bezierCurveTo(-apW * 0.68, apH * 0.10, -apW * 0.66, -apH * 0.46, -apW * 0.28, -apH * 0.68);
-    innerMouth.closePath();
-    c.fillStyle = inner;
-    c.fill(innerMouth);
-    c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.22);
-    c.lineWidth = 1.1;
-    c.stroke(innerMouth);
-    c.beginPath();
-    c.moveTo(-apW * 0.24, -apH * 0.86);
-    c.bezierCurveTo(apW * 0.48, -apH * 0.72, apW * 0.76, -apH * 0.18, apW * 0.70, apH * 0.22);
-    c.strokeStyle = 'rgba(255,248,224,0.16)';
-    c.lineWidth = 1.2;
-    c.stroke();
-    c.restore();
-
-    // Nudos suaves del hombro, visibles como densidades, no como púas decorativas.
-    if (style.spines > 0.05) {
-      const spineCount = Math.round(3 + style.spines * 4 + high * 3);
+    // Espinas largas adicionales para Murex/Triton
+    if (style.spines > 0.3) {
+      const spineCount = Math.round(5 + style.spines * 8 + high * 4);
       for (let j = 0; j < spineCount; j++) {
-        const t = 0.18 + (j / Math.max(1, spineCount - 1)) * 0.46;
+        const t = 0.15 + (j / Math.max(1, spineCount - 1)) * 0.55;
         const tp = topPointAt(t);
         const amp = ampAt((j * 2) % numH);
-        c.beginPath();
-        c.ellipse(tp.x, tp.y + tp.r * 0.02, tp.r * (0.18 + amp * 0.10), tp.r * (0.08 + amp * 0.05), -0.16, 0, Math.PI * 2);
-        c.fillStyle = hexToRgba(palette[(j + 1) % palette.length], 0.08 + amp * 0.10);
-        c.fill();
-        c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.10 + amp * 0.12);
-        c.lineWidth = 0.8;
-        c.stroke();
+        
+        // Dibujar espina superior afilada
+        if (Math.sin((1 - t) * Math.PI * (5.6 + style.ribs * 1.35)) > 0.5) {
+          c.beginPath();
+          c.moveTo(tp.x - tp.r * 0.1, tp.y + tp.r * 0.1);
+          // Punta de la espina
+          const tipX = tp.x + tp.r * (0.1 + style.spines * 0.2);
+          const tipY = tp.y - tp.r * (0.2 + style.spines * 0.4 + amp * 0.2);
+          c.quadraticCurveTo(tp.x, tp.y - tp.r * 0.1, tipX, tipY);
+          c.quadraticCurveTo(tp.x + tp.r * 0.1, tp.y, tp.x + tp.r * 0.1, tp.y + tp.r * 0.1);
+          
+          c.fillStyle = hexToRgba(palette[1 % palette.length], 0.2 + amp * 0.15);
+          c.fill();
+          c.strokeStyle = hexToRgba(palette[0], 0.4);
+          c.lineWidth = 1;
+          c.stroke();
+        }
       }
     }
 
-    c.shadowColor = hexToRgba(palette[2] || palette[0], 0.34);
-    c.shadowBlur = 10;
-    c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.38);
-    c.lineWidth = 1.4;
+    // Boca: renderizado volumétrico y orgánico
+    c.save();
+    c.translate(lip.x - W * 0.035, lip.y + lipR * 0.02);
+    c.rotate(-0.12);
+    c.shadowColor = hexToRgba(palette[2] || palette[0], 0.4);
+    c.shadowBlur = 18;
+    
+    // Labio externo
+    const outerMouth = new Path2D();
+    outerMouth.moveTo(-apW * 0.34, -apH * 0.98);
+    outerMouth.bezierCurveTo(apW * 0.5, -apH * 1.1, apW * 1.15, -apH * 0.5, apW * 0.98, apH * 0.08);
+    outerMouth.bezierCurveTo(apW * 0.85, apH * 0.9, apW * 0.25, apH * 1.1, -apW * 0.35, apH * 0.95);
+    outerMouth.bezierCurveTo(-apW * 0.9, apH * 0.7, -apW * 0.95, -apH * 0.6, -apW * 0.34, -apH * 0.98);
+    outerMouth.closePath();
+    
+    const lipGrad = c.createLinearGradient(0, -apH, 0, apH);
+    lipGrad.addColorStop(0, hexToRgba(palette[0], 0.35 + low * 0.1));
+    lipGrad.addColorStop(0.5, hexToRgba(palette[2] || palette[0], 0.25));
+    lipGrad.addColorStop(1, hexToRgba(palette[1] || palette[0], 0.4));
+    c.fillStyle = lipGrad;
+    c.fill(outerMouth);
+    
+    c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.6);
+    c.lineWidth = 2.5 + low * 3.0;
+    c.stroke(outerMouth);
+    c.shadowBlur = 0;
+    
+    // Brillo especular en el labio
+    c.beginPath();
+    c.moveTo(apW * 0.4, -apH * 0.8);
+    c.bezierCurveTo(apW * 0.8, -apH * 0.4, apW * 0.7, apH * 0.4, apW * 0.3, apH * 0.8);
+    c.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    c.lineWidth = 2;
+    c.stroke();
+
+    // Interior oscuro
+    const inner = c.createRadialGradient(-apW * 0.2, -apH * 0.1, apW * 0.05, -apW * 0.1, -apH * 0.05, apH * 0.95);
+    inner.addColorStop(0, hexToRgba(palette[2] || palette[0], 0.2));
+    inner.addColorStop(0.3, 'rgba(30,15,10,0.5)');
+    inner.addColorStop(0.8, 'rgba(5,2,5,0.85)');
+    inner.addColorStop(1, 'rgba(0,0,0,0.95)');
+    
+    const innerMouth = new Path2D();
+    innerMouth.moveTo(-apW * 0.28, -apH * 0.68);
+    innerMouth.bezierCurveTo(apW * 0.4, -apH * 0.8, apW * 0.75, -apH * 0.25, apW * 0.6, apH * 0.2);
+    innerMouth.bezierCurveTo(apW * 0.45, apH * 0.75, -apW * 0.05, apH * 0.8, -apW * 0.4, apH * 0.45);
+    innerMouth.bezierCurveTo(-apW * 0.75, apH * 0.1, -apW * 0.7, -apH * 0.5, -apW * 0.28, -apH * 0.68);
+    innerMouth.closePath();
+    
+    c.fillStyle = inner;
+    c.fill(innerMouth);
+    c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.3);
+    c.lineWidth = 1.5;
+    c.stroke(innerMouth);
+    
+    // Detalle orgánico interno
+    c.beginPath();
+    c.moveTo(-apW * 0.2, -apH * 0.8);
+    c.bezierCurveTo(apW * 0.55, -apH * 0.65, apW * 0.85, -apH * 0.1, apW * 0.75, apH * 0.3);
+    c.strokeStyle = 'rgba(255,230,200,0.2)';
+    c.lineWidth = 1.5;
+    c.stroke();
+    c.restore();
+
+    // Sombra final global
+    c.shadowColor = hexToRgba(palette[2] || palette[0], 0.4);
+    c.shadowBlur = 15;
+    c.strokeStyle = hexToRgba(palette[2] || palette[0], 0.5);
+    c.lineWidth = 1.8;
     c.stroke(shellPath);
     c.shadowBlur = 0;
     c.restore();
