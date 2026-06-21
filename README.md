@@ -147,3 +147,6 @@ open index.html
 - Stephanie McPeak Petersen — [Harmonics and the Conch Shell](https://stephaniemcpeakpetersen.substack.com/p/harmonics-and-the-conch-shell)
 - Pradeep Kariyawasam — [Connection Between Harmonic Waves and Conch Shells](https://www.kariyawasam.com/connection-between-harmonic-waves-and-conch-shells/)
 - Leonard Bernstein — *The Unanswered Question*, Norton Lectures, Harvard, 1973
+## License
+
+MIT License — © 2026 [Vladimiro Bellini](https://github.com/vlasvlasvlas). Free to use and modify, attribution required.
