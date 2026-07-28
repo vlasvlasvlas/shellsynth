@@ -226,7 +226,7 @@ canvas { width:100%; height:100%; display:block; }
       <section class="settings-section">
         <h2>Mix</h2>
         <div class="fx-group">
-          <label for="fx-vol">Volume</label>
+          <label for="fx-vol">Master</label>
           <input type="range" id="fx-vol" min="0" max="100" value="70" title="Volumen maestro (0 = silencio)">
           <span class="fx-val" id="fx-vol-val">70%</span>
         </div>
@@ -451,9 +451,11 @@ class AudioEngine {
   constructor() {
     this.ctx = null; this.oscs = []; this.gains = [];
     this.masterGain = null; this.compressor = null; this.analyser = null;
+    this.monoOut = null;
     this.convolver = null; this.dryGain = null; this.wetGain = null;
     this.fundamental = 108; this.useJI = true; this.started = false;
     this.activeHarmonics = new Set();
+    this.harmonicAmps = new Array(16).fill(0);
     this.tonicSemis = 0;     // desplazamiento en semitonos de la tónica elegida
     this.padPitchSemis = 0;  // desplazamiento en semitonos que viene del eje Y del pad XY
     this.waveType = 'sine';  // forma de onda del oscilador para los 16 armónicos
@@ -464,9 +466,17 @@ class AudioEngine {
     this.analyser = this.ctx.createAnalyser();
     this.analyser.fftSize = 2048;
     this.compressor = this.ctx.createDynamicsCompressor();
-    this.compressor.threshold.value = -24; this.compressor.ratio.value = 4;
+    this.compressor.threshold.value = -22;
+    this.compressor.knee.value = 18;
+    this.compressor.ratio.value = 8;
+    this.compressor.attack.value = 0.006;
+    this.compressor.release.value = 0.16;
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = 0.35;
+    this.monoOut = this.ctx.createGain();
+    this.monoOut.channelCount = 1;
+    this.monoOut.channelCountMode = 'explicit';
+    this.monoOut.channelInterpretation = 'speakers';
     // Reverberación por convolución con una respuesta impulsional oceánica sintética
     this.convolver = this.ctx.createConvolver();
     this.convolver.buffer = this._createReverbIR(4.0);
@@ -493,7 +503,8 @@ class AudioEngine {
     this.wetGain.connect(this.compressor);
     this.delayWet.connect(this.compressor);
     this.compressor.connect(this.analyser);
-    this.analyser.connect(this.ctx.destination);
+    this.analyser.connect(this.monoOut);
+    this.monoOut.connect(this.ctx.destination);
     // LFO de vibrato: modula el `detune` de cada oscilador (centésimas)
     // para sonar como una oscilación natural de altura, no como un corrimiento fijo.
     this.vibratoLFO = this.ctx.createOscillator();
@@ -531,38 +542,51 @@ class AudioEngine {
   setReverbMix(v) {
     if (!this.wetGain) return;
     const t = this.ctx.currentTime;
+    this.wetGain.gain.cancelScheduledValues(t);
+    this.wetGain.gain.setValueAtTime(this.wetGain.gain.value, t);
     this.wetGain.gain.linearRampToValueAtTime(v, t + 0.05);
   }
   setDelayMix(v) {
     if (!this.delayWet) return;
     const t = this.ctx.currentTime;
+    this.delayWet.gain.cancelScheduledValues(t);
+    this.delayWet.gain.setValueAtTime(this.delayWet.gain.value, t);
     this.delayWet.gain.linearRampToValueAtTime(v, t + 0.05);
   }
   setDelayTime(seconds) {
     if (!this.delay) return;
     const t = this.ctx.currentTime;
+    this.delay.delayTime.cancelScheduledValues(t);
+    this.delay.delayTime.setValueAtTime(this.delay.delayTime.value, t);
     this.delay.delayTime.linearRampToValueAtTime(Math.max(0.01, seconds), t + 0.05);
   }
   setDelayFeedback(v) {
     if (!this.delayFeedback) return;
     const t = this.ctx.currentTime;
     // Límite menor que 1.0 para evitar un retorno descontrolado.
+    this.delayFeedback.gain.cancelScheduledValues(t);
+    this.delayFeedback.gain.setValueAtTime(this.delayFeedback.gain.value, t);
     this.delayFeedback.gain.linearRampToValueAtTime(Math.max(0, Math.min(0.92, v)), t + 0.05);
   }
   setWaveform(type) {
     this.waveType = type;
     if (this.oscs) this.oscs.forEach(o => { o.type = type; });
+    if (this.started) this._applyHarmonicTargets(0.08);
   }
   setVibrato(amount) {
     // Valor 0..1 → 0..50 centésimas de oscilación de altura (≈ ±medio semitono al máximo).
     if (!this.vibratoDepth) return;
     const t = this.ctx.currentTime;
+    this.vibratoDepth.gain.cancelScheduledValues(t);
+    this.vibratoDepth.gain.setValueAtTime(this.vibratoDepth.gain.value, t);
     this.vibratoDepth.gain.linearRampToValueAtTime(amount * 50, t + 0.05);
   }
   setMasterVolume(v) {
     // v en 0..1; 0 silencia, 1 se mapea a una ganancia pico razonable (0.5).
     if (!this.masterGain) return;
     const t = this.ctx.currentTime;
+    this.masterGain.gain.cancelScheduledValues(t);
+    this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, t);
     this.masterGain.gain.linearRampToValueAtTime(v * 0.5, t + 0.04);
   }
   // Cuts reverb and delay sends to zero briefly so their tails die out, then
@@ -604,22 +628,46 @@ class AudioEngine {
   }
   setHarmonic(idx, amp, ramp = null) {
     if (!this.started || idx >= 16) return;
-    const t = this.ctx.currentTime;
-    const target = amp * 0.25;
-    if (ramp !== null && ramp <= 0.1) {
-      // Automatización en vivo (pad XY / recorrido / barra espaciadora): acercamiento exponencial.
-      // setTargetAtTime es la primitiva correcta acá: no cancela ni reinicia, entonces
-      // las actualizaciones a 60 fps fluyen suave por el parámetro y se escucha
-      // el cambio del eje X en tiempo real.
-      this.gains[idx].gain.setTargetAtTime(target, t, Math.max(0.01, ramp / 3));
-    } else {
-      // Clic / conmutador / carga de preajuste: cancela la programación previa y hace una rampa lineal.
-      this.gains[idx].gain.cancelScheduledValues(t);
-      this.gains[idx].gain.setValueAtTime(this.gains[idx].gain.value, t);
-      const dur = ramp !== null ? ramp : (amp > 0 ? 0.3 : 1.2);
-      this.gains[idx].gain.linearRampToValueAtTime(target, t + dur);
+    this.harmonicAmps[idx] = Math.max(0, Math.min(1, amp));
+    this._applyHarmonicTargets(ramp);
+  }
+  setHarmonics(amps, ramp = null) {
+    if (!this.started) return;
+    for (let i = 0; i < 16; i++) {
+      this.harmonicAmps[i] = Math.max(0, Math.min(1, amps[i] || 0));
     }
-    if (amp > 0) this.activeHarmonics.add(idx); else this.activeHarmonics.delete(idx);
+    this._applyHarmonicTargets(ramp);
+  }
+  _harmonicScale() {
+    const sumSq = this.harmonicAmps.reduce((sum, amp) => sum + amp * amp, 0);
+    return 0.24 / Math.max(1, Math.sqrt(sumSq));
+  }
+  _waveformLevel() {
+    if (this.waveType === 'square') return 0.72;
+    if (this.waveType === 'sawtooth') return 0.86;
+    return 1;
+  }
+  _applyHarmonicTargets(ramp = null) {
+    const t = this.ctx.currentTime;
+    const scale = this._harmonicScale() * this._waveformLevel();
+    for (let i = 0; i < 16; i++) {
+      const amp = this.harmonicAmps[i] || 0;
+      const target = amp * scale;
+      if (ramp !== null && ramp <= 0.1) {
+        // Automatización en vivo (pad XY / recorrido / barra espaciadora): acercamiento exponencial.
+        // setTargetAtTime es la primitiva correcta acá: no cancela ni reinicia, entonces
+        // las actualizaciones a 60 fps fluyen suave por el parámetro y se escucha
+        // el cambio del eje X en tiempo real.
+        this.gains[i].gain.setTargetAtTime(target, t, Math.max(0.01, ramp / 3));
+      } else {
+        // Clic / conmutador / carga de preajuste: cancela la programación previa y hace una rampa lineal.
+        this.gains[i].gain.cancelScheduledValues(t);
+        this.gains[i].gain.setValueAtTime(this.gains[i].gain.value, t);
+        const dur = ramp !== null ? ramp : (amp > 0 ? 0.3 : 1.2);
+        this.gains[i].gain.linearRampToValueAtTime(target, t + dur);
+      }
+      if (amp > 0) this.activeHarmonics.add(i); else this.activeHarmonics.delete(i);
+    }
   }
   setFundamental(f) {
     this.fundamental = f;
@@ -1432,9 +1480,9 @@ function stopPathPlayback() {
 function silenceAll() {
   for (let i = 0; i < 16; i++) {
     amplitudes[i] = 0;
-    audioSet(i, 0, 0.05);   // release rápido en los osciladores
     activeHarmonics.delete(i);
   }
+  audioSetAll(amplitudes, 0.05);   // release rápido en los osciladores
   // También cortamos las colas de reverb y delay para que el silencio sea real.
   if (audio.started) audio.killFXTail(0.3);
   syncSlidersFromAmps();
@@ -1495,11 +1543,33 @@ function drawGrid(c, w, h) {
   c.restore();
 }
 
-// audioSet envuelve audio.setHarmonic para que un armónico silenciado siempre suene en 0
-// mientras el deslizador recuerda su valor anterior.
+function shouldSoundFromCurrentGesture() {
+  return holdOn || isLivePressing() || pathPlaying;
+}
+
+// audioSet envuelve audio.setHarmonic para que los cambios de preparación
+// actualicen la interfaz sin abrir audio salvo que haya HOLD, press o PATH.
 function audioSet(idx, amp, ramp = null) {
   if (!audio.started) return;
-  audio.setHarmonic(idx, muted[idx] ? 0 : amp, ramp);
+  const target = shouldSoundFromCurrentGesture() ? amp : 0;
+  audio.setHarmonic(idx, muted[idx] ? 0 : target, ramp);
+}
+
+function audioSetAll(amps, ramp = null) {
+  if (!audio.started) return;
+  const shouldSound = shouldSoundFromCurrentGesture();
+  const targets = new Array(16);
+  for (let i = 0; i < 16; i++) {
+    const target = shouldSound ? (amps[i] || 0) : 0;
+    targets[i] = muted[i] ? 0 : target;
+  }
+  audio.setHarmonics(targets, ramp);
+}
+
+function syncHarmonicVisualState(idx, threshold = 0) {
+  const amp = amplitudes[idx] || 0;
+  if (amp > threshold && !muted[idx]) activeHarmonics.add(idx);
+  else activeHarmonics.delete(idx);
 }
 
 function createSlider(idx) {
@@ -1518,13 +1588,14 @@ function createSlider(idx) {
     const v = e.target.value / 100;
     amplitudes[idx] = v;
     audioSet(idx, v);
-    if (v > 0) activeHarmonics.add(idx); else activeHarmonics.delete(idx);
+    syncHarmonicVisualState(idx);
     div.querySelector(`[data-val="${idx}"]`).textContent = Math.round(v * 100) + '%';
   });
   div.querySelector('.mute-btn').addEventListener('click', e => {
     muted[idx] = !muted[idx];
     e.currentTarget.classList.toggle('muted', muted[idx]);
     audioSet(idx, amplitudes[idx]);
+    syncHarmonicVisualState(idx);
   });
   return div;
 }
@@ -1533,7 +1604,7 @@ function addHarmonic() {
   if (nextHarmonic >= 16) return;
   const idx = nextHarmonic++;
   amplitudes[idx] = idx === 0 ? 1.0 : Math.max(0.1, 1 - idx * 0.06);
-  activeHarmonics.add(idx);
+  syncHarmonicVisualState(idx);
   audio.init().then(() => audioSet(idx, amplitudes[idx]));
   const row = document.getElementById('slider-row');
   row.appendChild(createSlider(idx));
@@ -1548,7 +1619,7 @@ function loadPreset(name) {
   stopPathPlayback();
   audio.init().then(() => {
     // Silenciar TODOS los armónicos del estado anterior (evita que Vacío deje audio sonando).
-    for (let i = 0; i < 16; i++) audio.setHarmonic(i, 0);
+    audio.setHarmonics(new Array(16).fill(0));
     amplitudes.fill(0); activeHarmonics.clear(); nextHarmonic = 0;
     const row = document.getElementById('slider-row');
     row.querySelectorAll('.harmonic-slider').forEach(el => el.remove());
@@ -1557,13 +1628,13 @@ function loadPreset(name) {
     p.amps.forEach((amp, i) => {
       if (i >= 16) return;
       amplitudes[i] = amp;
-      if (amp > 0) activeHarmonics.add(i);
-      // El audio solo suena si HOLD está activo; si no, el preajuste solo prepara
-      // deslizadores/visuales y queda en silencio hasta presionar el pad, Espacio o la ruta.
-      audioSet(i, holdOn ? amp : 0);
+      syncHarmonicVisualState(i);
+      // El preajuste solo prepara deslizadores/visuales; audioSet decide si debe sonar
+      // según HOLD, una presión en vivo o PATH.
       nextHarmonic = i + 1;
       row.appendChild(createSlider(i));
     });
+    audioSetAll(amplitudes);
     if (nextHarmonic >= 16) document.getElementById('add-btn').style.display = 'none';
   });
   document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.dataset.preset === name));
@@ -1593,14 +1664,12 @@ function applyOumWindow(cursor, sigma = 2.0) {
     const win = Math.exp(-(dist * dist) / (2 * sigma * sigma));
     const amp = win * 0.85;
     amplitudes[i] = amp;
-    audioSet(i, amp, 0.03);   // tau corto para que los barridos XY se sientan en tiempo real
+    syncHarmonicVisualState(i, 0.05);
     if (amp > 0.05) {
-      activeHarmonics.add(i);
       if (i + 1 > nextHarmonic) nextHarmonic = i + 1;
-    } else {
-      activeHarmonics.delete(i);
     }
   }
+  audioSetAll(amplitudes, 0.03);   // tau corto para que los barridos XY se sientan en tiempo real
   syncSlidersFromAmps();
 }
 
@@ -1757,7 +1826,7 @@ document.getElementById('hold-mode').addEventListener('click', e => {
   audio.init().then(() => {
     if (holdOn) {
       // HOLD activado → llevar al audio las amplitudes que muestran los deslizadores.
-      for (let i = 0; i < 16; i++) audioSet(i, amplitudes[i]);
+      audioSetAll(amplitudes);
     } else if (!isLivePressing() && !pathPlaying) {
       // HOLD desactivado → silenciar salvo que estés tocando ahora (pad, space o path).
       silenceAll();
@@ -1854,11 +1923,9 @@ bindFx('fx-vib',      'fx-vib-val',      x => `${x}%`,    x => audio.setVibrato(
     amplitudes[hit] = newAmp;
     audio.init().then(() => audioSet(hit, newAmp));
     if (newAmp > 0) {
-      activeHarmonics.add(hit);
       if (hit + 1 > nextHarmonic) nextHarmonic = hit + 1;
-    } else {
-      activeHarmonics.delete(hit);
     }
+    syncHarmonicVisualState(hit);
     syncSlidersFromAmps();
   }
 
@@ -1993,13 +2060,11 @@ document.addEventListener('keydown', e => {
       const isActive = activeHarmonics.has(idx);
       const amp = isActive ? 0 : (idx === 0 ? 1.0 : Math.max(0.1, 1 - idx * 0.06));
       amplitudes[idx] = amp;
-      audio.init().then(() => audio.setHarmonic(idx, amp));
+      audio.init().then(() => audioSet(idx, amp));
       if (amp > 0) {
-        activeHarmonics.add(idx);
         if (idx + 1 > nextHarmonic) nextHarmonic = idx + 1;
-      } else {
-        activeHarmonics.delete(idx);
       }
+      syncHarmonicVisualState(idx);
       syncSlidersFromAmps();
     }
   }

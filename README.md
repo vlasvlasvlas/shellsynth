@@ -34,7 +34,7 @@ Inspirado en Bernstein (*The Unanswered Question*, 1973) y en referencias visual
 - **4 formas de onda**: sine / triangle / square / saw.
 - **Just Intonation `=`** (ratios enteros 1, 2, 3, …) o **Equal Temperament `≈`** (12-TET) — la diferencia es audible y visual en la alineación de las ondas.
 - **Tonic transposable** (C, C#, D, … B) y 10 escalas: Major, Minor, Pentatonic Major/Minor, Phrygian, Hijaz, Yaman, Bhairav, Whole Tone, Chromatic.
-- **Cadena de FX en línea**: master volume, reverb por convolución (IR oceánica generada), delay con feedback (cap 92% para evitar runaway), vibrato (LFO sobre `detune`).
+- **Cadena de FX en línea**: un único control `Master`, normalización de energía armónica con compensación por waveform, salida final mono, reverb por convolución (IR oceánica generada), delay con feedback (cap 92% para evitar runaway), vibrato (LFO sobre `detune`).
 - **Kill switch de colas**: cuando un press termina o se pausa el path, las colas de reverb/delay se silencian rápidamente para un stop real.
 
 ### Visualización
@@ -55,7 +55,7 @@ Inspirado en Bernstein (*The Unanswered Question*, 1973) y en referencias visual
 | **Spacebar** | Mantener `Space` apretado | Activa el pad XY usando la última posición del mouse sobre la concha. Mover el mouse mientras `Space` está apretado actualiza el sonido en tiempo real. |
 | **HOLD** | Botón `HOLD` en el toggle de la concha | Cuando está **off** (default): el sonido vive solo mientras presionás (release silencia con kill de colas). Cuando está **on**: el sonido queda sostenido al soltar. |
 | **PATH** | Botón `PATH` + click sobre la concha | Crea waypoints numerados. Doble-click sobre un punto lo borra. `↔ / → / ←` elige sentido de circulación (ping-pong, forward, reverse). `▶ / ■` reproduce o detiene. `✕` borra todos los puntos. `Path Speed` define el tiempo total de recorrido (1–30 s). El playhead recorre el camino disparando el pad XY automáticamente. |
-| **Mute por armónico** | Botón `S` en cada slider | Silencia ese armónico preservando el valor del slider. |
+| **Mute por armónico** | Botón `S` en cada slider | Silencia ese armónico preservando el valor del slider. Los sliders H1-H16 son pesos de timbre normalizados, no volúmenes de salida independientes. |
 | **Atajos de teclado** | `1`–`9` toggle armónicos, `+` agrega siguiente, `?` ayuda. | |
 
 ### Touch
@@ -135,7 +135,7 @@ open index.html
 ## Tecnología
 
 - **HTML / CSS / JS vanilla**, sin build, sin frameworks, sin dependencias.
-- **Web Audio API**: `OscillatorNode`, `GainNode` con `setTargetAtTime` para automation suave, `DynamicsCompressorNode`, `ConvolverNode` (IR sintética), `DelayNode` con feedback loop, LFO sobre `detune` para vibrato.
+- **Web Audio API**: `OscillatorNode`, `GainNode` con `setTargetAtTime` para automation suave, `DynamicsCompressorNode`, `ConvolverNode` (IR sintética), `DelayNode` con feedback loop, LFO sobre `detune` para vibrato y bus final mono.
 - **Canvas 2D** para los dos paneles de visualización.
 - **Pointer Events** unificados para mouse + touch + pen.
 - **GitHub Actions** para deploy automático a GitHub Pages.
